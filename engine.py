@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from google import genai
+import google.genai as genai
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import chromadb
