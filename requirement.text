@@ -1,0 +1,7 @@
+google-genai
+chromadb
+langchain-community
+langchain-text-splitters
+pypdf
+gradio
+python-dotenv
