@@ -1,6 +1,4 @@
---upgrade google-genai
 google-genai
-google-auth
 chromadb
 langchain-community
 langchain-text-splitters
