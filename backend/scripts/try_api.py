@@ -37,13 +37,25 @@ def main() -> None:
     parser.add_argument("pdf", type=Path)
     parser.add_argument("question")
     parser.add_argument("--user", default="alice", help="who to log in as (each is isolated)")
+    parser.add_argument(
+        "--cognito",
+        metavar="ENV",
+        help="use the Cognito token saved by cognito_user.py login (e.g. --cognito dev) "
+        "instead of a local dev token",
+    )
     parser.add_argument("--api", default="http://localhost:8000")
     parser.add_argument("--delete", action="store_true", help="delete the document at the end")
     args = parser.parse_args()
     data = args.pdf.read_bytes()
 
-    print(f"0) Log in as {args.user!r} (a local development token; Cognito on AWS)")
-    headers = {"Authorization": f"Bearer {mint(args.user)}"}
+    if args.cognito:
+        token_path = Path.home() / ".documind" / f"{args.cognito}-token"
+        print(f"0) Use the Cognito login saved in {token_path}")
+        token = token_path.read_text(encoding="utf-8").strip()
+    else:
+        print(f"0) Log in as {args.user!r} (a local development token; Cognito on AWS)")
+        token = mint(args.user)
+    headers = {"Authorization": f"Bearer {token}"}
 
     with httpx.Client(base_url=args.api, timeout=60, headers=headers) as api:
         print("1) Register the upload")
