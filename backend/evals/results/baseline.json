@@ -1,0 +1,3641 @@
+{
+  "label": "baseline",
+  "created_at": "2026-09-25T09:39:17+00:00",
+  "git_sha": "f918d6b",
+  "overrides": [],
+  "config": {
+    "chat_model": "gpt-6-luna",
+    "chat_reasoning_effort": "low",
+    "chat_max_output_tokens": 1000,
+    "embedding_model": "text-embedding-3-small",
+    "embedding_dimensions": 1536,
+    "chunk_size": 500,
+    "chunk_overlap": 75,
+    "retrieval_top_k": 5,
+    "chunking_strategy": "recursive",
+    "retrieval_mode": "dense",
+    "reranker": "none",
+    "context_token_budget": 3000
+  },
+  "summary": {
+    "questions": {
+      "answerable": 50,
+      "unanswerable": 5
+    },
+    "corpus": {
+      "documents": 3,
+      "chunks": 909,
+      "ingest_seconds": 11.8
+    },
+    "retrieval": {
+      "recall@1": 0.54,
+      "recall@3": 0.84,
+      "recall@5": 0.92,
+      "recall@10": 0.98,
+      "mrr@10": 0.703,
+      "recall@5_by_type": {
+        "definition": 1.0,
+        "fact": 0.944,
+        "identifier": 1.0,
+        "list": 0.9,
+        "reasoning": 0.667,
+        "table": 0.833
+      }
+    },
+    "answers": {
+      "correctness": 0.78,
+      "faithfulness": 0.984,
+      "declines_unanswerable": 1.0,
+      "abstention_on_unanswerable": 1.0,
+      "false_abstention_on_answerable": 0.14
+    },
+    "latency_ms": {
+      "retrieval_p50": 227,
+      "retrieval_p95": 395,
+      "end_to_end_p50": 1672,
+      "end_to_end_p95": 2642
+    },
+    "tokens_per_query": {
+      "input": 765,
+      "output": 34,
+      "usd": 9.3e-05
+    },
+    "judge_usd": 0.0071
+  },
+  "rows": [
+    {
+      "id": "csf-01",
+      "type": "list",
+      "answerable": true,
+      "question": "What are the six Core Functions of CSF 2.0?",
+      "reference": "GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        8,
+        31
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          8
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ]
+      ],
+      "first_relevant_rank": 3,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 218.7465000024531,
+      "total_ms": 1616.9410000002244,
+      "input_tokens": 691,
+      "output_tokens": 15
+    },
+    {
+      "id": "csf-02",
+      "type": "fact",
+      "answerable": true,
+      "question": "What was the Cybersecurity Framework called before version 2.0?",
+      "reference": "The Framework for Improving Critical Infrastructure Cybersecurity.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        2
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          44
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          3
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          1
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "Before version 2.0, it was called the \u201cFramework for Improving Critical Infrastructure Cybersecurity.\u201d [4]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer gives the Framework\u2019s name before version 2.0 exactly as in the reference.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 384.47970000561327,
+      "total_ms": 1918.2942000043113,
+      "input_tokens": 811,
+      "output_tokens": 26
+    },
+    {
+      "id": "csf-03",
+      "type": "list",
+      "answerable": true,
+      "question": "What are the four CSF Tiers?",
+      "reference": "Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4).",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        12,
+        31
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          13
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 215.94110000296496,
+      "total_ms": 1506.8231000041123,
+      "input_tokens": 686,
+      "output_tokens": 15
+    },
+    {
+      "id": "csf-04",
+      "type": "table",
+      "answerable": true,
+      "question": "What is the category identifier for Cybersecurity Supply Chain Risk Management?",
+      "reference": "GV.SC (under the Govern Function).",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        20,
+        18
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          23
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          23
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          22
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          23
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          22
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          18
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          8
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          19
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          22
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "GV.SC [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer gives the category identifier GV.SC.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 235.66720000235364,
+      "total_ms": 2346.6938999918057,
+      "input_tokens": 712,
+      "output_tokens": 8
+    },
+    {
+      "id": "csf-05",
+      "type": "identifier",
+      "answerable": true,
+      "question": "What does subcategory GV.SC-04 state?",
+      "reference": "Suppliers are known and prioritized by criticality.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        22
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          23
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          22
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          22
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          22
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          23
+        ]
+      ],
+      "first_relevant_rank": 4,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 221.10710000561085,
+      "total_ms": 1362.5172000029124,
+      "input_tokens": 847,
+      "output_tokens": 15
+    },
+    {
+      "id": "csf-06",
+      "type": "identifier",
+      "answerable": true,
+      "question": "What outcome does PR.DS-11 describe?",
+      "reference": "Backups of data are created, protected, maintained, and tested.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        25
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          25
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          30
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "PR.DS-11 describes creating, protecting, maintaining, and testing backups of data. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It includes all four outcomes: backups are created, protected, maintained, and tested.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 220.14030000718776,
+      "total_ms": 1360.0981000054162,
+      "input_tokens": 785,
+      "output_tokens": 24
+    },
+    {
+      "id": "csf-07",
+      "type": "reasoning",
+      "answerable": true,
+      "question": "Which Function sits at the center of the CSF Functions wheel, and why?",
+      "reference": "GOVERN, because it informs how an organization will implement the other five Functions.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        9
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          9
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          8
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          15
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "GOVERN sits at the center of the CSF Functions wheel because the Functions relate to one another, and planning and testing in GOVERN support timely detection of unexpected events.[1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.5,
+      "correctness_reason": "It correctly identifies GOVERN, but does not give the reference\u2019s reason that it informs how the other five Functions are implemented.",
+      "faithfulness": 0.6666666666666666,
+      "unsupported": "GOVERN sits at the center of the CSF Functions wheel",
+      "retrieval_ms": 225.39099999994505,
+      "total_ms": 1631.298300009803,
+      "input_tokens": 753,
+      "output_tokens": 39
+    },
+    {
+      "id": "csf-08",
+      "type": "definition",
+      "answerable": true,
+      "question": "What does a Current Profile specify?",
+      "reference": "The Core outcomes an organization is currently achieving (or attempting to achieve), and how or to what extent each outcome is being achieved.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        11
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          11
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          12
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          11
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          11
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          16
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "A Current Profile specifies the CSF Core outcomes an organization is currently achieving\u2014or attempting to achieve\u2014and how or to what extent each outcome is being achieved. [2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly states that a Current Profile specifies the Core outcomes currently achieved or attempted and how or to what extent each is achieved.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 219.9696000025142,
+      "total_ms": 2054.3089999991935,
+      "input_tokens": 739,
+      "output_tokens": 36
+    },
+    {
+      "id": "csf-09",
+      "type": "list",
+      "answerable": true,
+      "question": "What are the steps for creating and using a CSF Organizational Profile?",
+      "reference": "1) Scope the Profile, 2) gather the needed information, 3) create the Profile, 4) analyze gaps between Current and Target Profiles and create an action plan, 5) implement the action plan and update the Profile.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        12
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          11
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          12
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          16
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ]
+      ],
+      "first_relevant_rank": 3,
+      "answer": "The provided excerpts identify these steps:\n\n1. Create the Organizational Profile: decide what information to include for the selected CSF outcomes and document it. Consider the risks reflected in the Current Profile when planning and prioritizing the Target Profile; a Community Profile can also inform the Target Profile. [3]\n2. Analyze gaps between the Current and Target Profiles, then create an action plan. [3]\n\nThe excerpts do not provide the full sequence of steps shown in Fig. 3.",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.5,
+      "correctness_reason": "It correctly identifies creating the Profile and analyzing gaps to make an action plan, but omits scoping, gathering information, and implementing the plan and updating the Profile.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 217.42249999078922,
+      "total_ms": 2711.095499995281,
+      "input_tokens": 653,
+      "output_tokens": 99
+    },
+    {
+      "id": "csf-10",
+      "type": "list",
+      "answerable": true,
+      "question": "Which three types of online resources that supplement the CSF are described?",
+      "reference": "Informative References, Implementation Examples, and Quick Start Guides (QSGs).",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        14
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          14
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ]
+      ],
+      "first_relevant_rank": 3,
+      "answer": "Informative References, Implementation Examples, and Quick Start Guides [2].",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer names all three resource types: Informative References, Implementation Examples, and Quick Start Guides.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 237.60290000063833,
+      "total_ms": 1976.265000004787,
+      "input_tokens": 736,
+      "output_tokens": 17
+    },
+    {
+      "id": "csf-11",
+      "type": "table",
+      "answerable": true,
+      "question": "At Tier 1 (Partial), how is the organizational cybersecurity risk strategy applied?",
+      "reference": "In an ad hoc manner; prioritization is ad hoc and not formally based on objectives or the threat environment.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        29
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          12
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          30
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          22
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "At Tier 1 (Partial), the organizational cybersecurity risk strategy is managed in an ad hoc manner. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.5,
+      "correctness_reason": "It captures that the strategy is applied ad hoc but omits that prioritization is not formally based on objectives or the threat environment.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 230.40990000299644,
+      "total_ms": 1622.5239999912446,
+      "input_tokens": 752,
+      "output_tokens": 26
+    },
+    {
+      "id": "csf-12",
+      "type": "table",
+      "answerable": true,
+      "question": "In the Adaptive tier, what is the organizational budget based on?",
+      "reference": "An understanding of the current and predicted risk environment and risk tolerance.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        30
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          30
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          12
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          13
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          30
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          8
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 224.33560001081787,
+      "total_ms": 1272.3364000121364,
+      "input_tokens": 736,
+      "output_tokens": 15
+    },
+    {
+      "id": "csf-13",
+      "type": "fact",
+      "answerable": true,
+      "question": "Where should suggestions for new CSF 2.0 Informative References be sent?",
+      "reference": "To NIST at olir@nist.gov.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        14
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          14
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          11
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          8
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Send suggestions for new CSF 2.0 Informative References to **olir@nist.gov**. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly says suggestions should be sent to olir@nist.gov.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 226.8616000073962,
+      "total_ms": 2046.654400008265,
+      "input_tokens": 766,
+      "output_tokens": 28
+    },
+    {
+      "id": "csf-14",
+      "type": "table",
+      "answerable": true,
+      "question": "Which Categories make up the DETECT Function?",
+      "reference": "Continuous Monitoring (DE.CM) and Adverse Event Analysis (DE.AE).",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        20,
+        26
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          9
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          10
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          13
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          8
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          34
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          10
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ]
+      ],
+      "first_relevant_rank": null,
+      "answer": "The provided passages do not list the Categories that make up the DETECT Function. I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 228.11799999908544,
+      "total_ms": 1751.754600001732,
+      "input_tokens": 753,
+      "output_tokens": 31
+    },
+    {
+      "id": "csf-15",
+      "type": "reasoning",
+      "answerable": true,
+      "question": "Why is the numbering of CSF 2.0 Subcategories not sequential?",
+      "reference": "Gaps in numbering indicate CSF 1.1 Subcategories that were relocated in CSF 2.0.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        20
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          8
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "The numbering is not sequential because some CSF 1.1 Subcategories were relocated in CSF 2.0; the gaps mark those relocations. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly explains that the numbering gaps mark CSF 1.1 Subcategories relocated in CSF 2.0.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 217.03110000817105,
+      "total_ms": 1641.0982000088552,
+      "input_tokens": 832,
+      "output_tokens": 38
+    },
+    {
+      "id": "csf-16",
+      "type": "identifier",
+      "answerable": true,
+      "question": "What does ID.RA-10 require?",
+      "reference": "Critical suppliers are assessed prior to acquisition.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        24
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          27
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          25
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          23
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          25
+        ]
+      ],
+      "first_relevant_rank": 4,
+      "answer": "ID.RA-10 requires critical suppliers to be assessed prior to acquisition. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly states that critical suppliers are assessed prior to acquisition.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 249.1905999922892,
+      "total_ms": 1648.9053999976022,
+      "input_tokens": 811,
+      "output_tokens": 21
+    },
+    {
+      "id": "csf-17",
+      "type": "list",
+      "answerable": true,
+      "question": "In what ways can an organization handle negative cybersecurity risks according to the CSF?",
+      "reference": "By mitigating, transferring, avoiding, or accepting them.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        15
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          15
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          17
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          11
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          15
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "An organization can mitigate, transfer, avoid, or accept negative cybersecurity risks, depending on their potential impacts and likelihoods. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It lists all four CSF risk response options: mitigate, transfer, avoid, and accept.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 221.9150000018999,
+      "total_ms": 1671.887800010154,
+      "input_tokens": 710,
+      "output_tokens": 30
+    },
+    {
+      "id": "csf-18",
+      "type": "fact",
+      "answerable": true,
+      "question": "When was CSF 2.0 published?",
+      "reference": "February 26, 2024.",
+      "document": "NIST.CSWP.29.pdf",
+      "pages": [
+        1,
+        2
+      ],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          8
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          4
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          11
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          14
+        ]
+      ],
+      "first_relevant_rank": 6,
+      "answer": "CSF 2.0 was published on February 26, 2024. [4]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer gives the correct publication date, February 26, 2024.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 219.04270000231918,
+      "total_ms": 1440.0279999972554,
+      "input_tokens": 788,
+      "output_tokens": 23
+    },
+    {
+      "id": "ir-01",
+      "type": "fact",
+      "answerable": true,
+      "question": "Which publication does SP 800-61 Revision 3 supersede?",
+      "reference": "SP 800-61 Revision 2, Computer Security Incident Handling Guide (August 2012).",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        3,
+        11
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          48
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          11
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          3
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          1
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          48
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          4
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          3
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          45
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          11
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          2
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "SP 800-61 Revision 3 supersedes SP 800-61 Revision 2 (SP 800-61r2), *Computer Security Incident Handling Guide*. [2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly identifies SP 800-61 Revision 2, Computer Security Incident Handling Guide, as the superseded publication.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 245.19349999900442,
+      "total_ms": 1604.4847000011941,
+      "input_tokens": 792,
+      "output_tokens": 40
+    },
+    {
+      "id": "ir-02",
+      "type": "definition",
+      "answerable": true,
+      "question": "How is a cybersecurity incident defined?",
+      "reference": "An occurrence that actually or imminently jeopardizes, without lawful authority, the integrity, confidentiality, or availability of information or an information system; or constitutes a violation or imminent threat of violation of law, security policies, security procedures, or acceptable use policies (FISMA 2014).",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        10,
+        47
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          47
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          47
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          10
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          47
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          16
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          10
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          8
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "A cybersecurity incident is an occurrence that actually or imminently jeopardizes the integrity, confidentiality, or availability of information or an information system without lawful authority, or violates\u2014or imminently threatens to violate\u2014law, security policies, security procedures, or acceptable use policies. [2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer includes both parts of the reference definition, including unauthorized jeopardy to information or systems and violations or imminent threats of violation of laws and security policies.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 230.99919999367557,
+      "total_ms": 2642.3014999891166,
+      "input_tokens": 737,
+      "output_tokens": 58
+    },
+    {
+      "id": "ir-03",
+      "type": "table",
+      "answerable": true,
+      "question": "Which CSF 2.0 Functions correspond to the Preparation phase of the previous incident response life cycle model?",
+      "reference": "Govern, Identify (all Categories), and Protect.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        14
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          8
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          8
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          11
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "The Preparation phase corresponds to Govern, Identify (all Categories), and Protect. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly identifies Govern, all Identify Categories, and Protect as corresponding to the Preparation phase.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 404.1931000101613,
+      "total_ms": 2671.2083000020357,
+      "input_tokens": 740,
+      "output_tokens": 21
+    },
+    {
+      "id": "ir-04",
+      "type": "definition",
+      "answerable": true,
+      "question": "What do the High, Medium, and Low priorities mean in the incident response Community Profile?",
+      "reference": "High: functions as a core incident response activity; Medium: directly supports incident response activities; Low: indirectly supports incident response activities (for most organizations).",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        18
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          34
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "- **High:** A core incident response activity for most organizations.\n- **Medium:** Directly supports incident response activities for most organizations.\n- **Low:** Indirectly supports incident response activities for most organizations. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly defines High, Medium, and Low priorities in line with the reference.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 220.45439999783412,
+      "total_ms": 1685.4789999924833,
+      "input_tokens": 795,
+      "output_tokens": 48
+    },
+    {
+      "id": "ir-05",
+      "type": "definition",
+      "answerable": true,
+      "question": "What do the R, C, and N prefixes mean in the Community Profile tables?",
+      "reference": "R = recommendation (something the organization should do), C = consideration (something it should consider doing), N = note (additional information).",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        18
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          13
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          11
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "R, C, and N designate a **recommendation, consideration, or note**, respectively. A number may follow the letter to identify a specific item (for example, R1 is recommendation 1). [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly defines R as recommendation, C as consideration, and N as note.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 226.9153999950504,
+      "total_ms": 1758.9875999983633,
+      "input_tokens": 746,
+      "output_tokens": 47
+    },
+    {
+      "id": "ir-06",
+      "type": "list",
+      "answerable": true,
+      "question": "What are the four types of risk responses?",
+      "reference": "Accept, Mitigate, Transfer, and Avoid.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        26
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          29
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          12
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          30
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "The four risk responses are **Accept** (accept the risk as is), **Mitigate** (reduce the risk), **Transfer** (share some consequences with another party), and **Avoid** (eliminate the attack surface so the risk does not occur). [1][2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly lists Accept, Mitigate, Transfer, and Avoid.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 227.03229999751784,
+      "total_ms": 1930.321300009382,
+      "input_tokens": 781,
+      "output_tokens": 60
+    },
+    {
+      "id": "ir-07",
+      "type": "definition",
+      "answerable": true,
+      "question": "What is the difference between escalating and elevating an incident?",
+      "reference": "Escalation generally means increasing resources or time frames; elevation means involving a higher level of management in the response.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        36
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          34
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          33
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Escalation generally means increasing the resources or time devoted to an incident, while elevation means involving a higher level of management in the response. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer accurately distinguishes escalation as increasing resources or time from elevation as involving higher-level management.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 237.9884999973001,
+      "total_ms": 1539.5078000001376,
+      "input_tokens": 836,
+      "output_tokens": 34
+    },
+    {
+      "id": "ir-08",
+      "type": "list",
+      "answerable": true,
+      "question": "What are examples of risk evaluation factors for prioritizing incidents?",
+      "reference": "Asset criticality, functional impact, data impact, stage of observed activity, threat actor characterization, and recoverability.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        35
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          34
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          34
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          37
+        ]
+      ],
+      "first_relevant_rank": 6,
+      "answer": "Examples include an incident\u2019s scope, likely impact, time-critical nature, and available resources [5]. The document also highlights evaluating overall risk and applying appropriate prioritization [1].",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.5,
+      "correctness_reason": "The answer mentions likely impact, which partially overlaps with functional impact, but omits the reference\u2019s other specific factors.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 499.3016000080388,
+      "total_ms": 2037.128500000108,
+      "input_tokens": 794,
+      "output_tokens": 38
+    },
+    {
+      "id": "ir-09",
+      "type": "list",
+      "answerable": true,
+      "question": "What are the four categories of incident response reporting and communication activities?",
+      "reference": "Incident coordination, incident notification, public communication, and incident information sharing.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        38
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          27
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ]
+      ],
+      "first_relevant_rank": 3,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 219.13260000292212,
+      "total_ms": 1629.3921000033151,
+      "input_tokens": 746,
+      "output_tokens": 47
+    },
+    {
+      "id": "ir-10",
+      "type": "definition",
+      "answerable": true,
+      "question": "What does containment mean in incident response?",
+      "reference": "Preventing the expansion of an incident, which can prevent additional damage and avoid overwhelming the organization's resources.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        40
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          41
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          41
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          16
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          15
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Containment means preventing an incident from expanding, which can limit further damage and help avoid overwhelming the organization\u2019s resources. [2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer accurately describes containment as preventing incident expansion to limit further damage and avoid overwhelming organizational resources.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 217.74429999641143,
+      "total_ms": 1367.7176000055624,
+      "input_tokens": 803,
+      "output_tokens": 29
+    },
+    {
+      "id": "ir-11",
+      "type": "identifier",
+      "answerable": true,
+      "question": "What should be prepared when the end of incident recovery is declared (RC.RP-06)?",
+      "reference": "An after-action report documenting the incident, the response and recovery actions taken, and lessons learned.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        42
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          43
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Prepare an after-action report documenting the incident, the response and recovery actions taken, and lessons learned. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It specifies an after-action report covering the incident, response and recovery actions, and lessons learned.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 224.3191999878036,
+      "total_ms": 2281.8559000006644,
+      "input_tokens": 707,
+      "output_tokens": 26
+    },
+    {
+      "id": "ir-12",
+      "type": "reasoning",
+      "answerable": true,
+      "question": "Why is the previous circular incident response life cycle model no longer a good fit?",
+      "reference": "It assumed incidents were rare, narrow, and resolved within a day or two; today incidents are frequent, more damaging, and recovery can take weeks or months, so response must be integrated and continuous.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        12
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          8
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ]
+      ],
+      "first_relevant_rank": 6,
+      "answer": "The document doesn\u2019t say the previous circular model is no longer a good fit. It says organizations should choose the incident response life cycle model that suits them best, and that this publication uses a CSF 2.0-based model to make use of CSF resources and support organizations already using CSF. [2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "The answer omits the key point that incidents are now frequent, more damaging, and often take weeks or months to recover from, requiring continuous, integrated response.",
+      "faithfulness": 0.6666666666666666,
+      "unsupported": "The document doesn\u2019t say the previous circular model is no longer a good fit.",
+      "retrieval_ms": 213.11500000592787,
+      "total_ms": 2038.8670000102138,
+      "input_tokens": 704,
+      "output_tokens": 67
+    },
+    {
+      "id": "ir-13",
+      "type": "list",
+      "answerable": true,
+      "question": "What key elements do most incident response policies include?",
+      "reference": "A statement of management commitment; purpose and objectives; scope; definitions of events, incidents, and related terms; roles, responsibilities, and authorities; guidelines for prioritizing incidents, estimating severity, and initiating recovery; and performance measures.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        16,
+        17
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          16
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          15
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Most incident response policies include a statement of management commitment, the policy\u2019s purpose and objectives, and its scope\u2014who and what it applies to, and under what circumstances. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.5,
+      "correctness_reason": "It includes management commitment, purpose and objectives, and scope, but omits the other key elements in the reference.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 249.79990000429098,
+      "total_ms": 1878.1944000074873,
+      "input_tokens": 758,
+      "output_tokens": 40
+    },
+    {
+      "id": "ir-14",
+      "type": "fact",
+      "answerable": true,
+      "question": "What should the incident response team do before redirecting an attacker to a sandbox?",
+      "reference": "Discuss the feasibility of the strategy with the legal department first, because the delay can be dangerous.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        40
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          32
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          41
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          41
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          40
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "The incident response team should first discuss whether redirecting the attacker to a sandbox is feasible, since doing so delays containment and eradication. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 0.5,
+      "correctness_reason": "It notes that feasibility should be discussed and that the strategy causes delay, but it omits the key instruction to consult the legal department first.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 228.68110000854358,
+      "total_ms": 1771.8741999997292,
+      "input_tokens": 730,
+      "output_tokens": 33
+    },
+    {
+      "id": "ir-15",
+      "type": "table",
+      "answerable": true,
+      "question": "What priority does GV.PO (Policy) have in the incident response Community Profile, and what does it recommend?",
+      "reference": "High priority; cybersecurity policies should include an incident response policy.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        21
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          23
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          21
+        ]
+      ],
+      "first_relevant_rank": 4,
+      "answer": "The provided passages do not show GV.PO\u2019s priority or its recommendations, so I don\u2019t know. The documents explain that priorities are labeled High, Medium, or Low, but don\u2019t include GV.PO\u2019s entry here.[1][2]",
+      "abstained": true,
+      "declined": null,
+      "correctness": 0.0,
+      "correctness_reason": "abstained",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 272.3878999968292,
+      "total_ms": 1827.6939000061247,
+      "input_tokens": 799,
+      "output_tokens": 53
+    },
+    {
+      "id": "ir-16",
+      "type": "definition",
+      "answerable": true,
+      "question": "What are incident response playbooks?",
+      "reference": "Documented procedures that provide actionable steps or tasks for people to perform during various scenarios; CISA's playbooks are cited as examples.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        17
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          44
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          9
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          12
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          15
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          13
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Incident response playbooks are documents that organize procedures into actionable steps or tasks for people to follow in particular scenarios. Organizations may create them for common incidents and threats, as well as urgent processes needed during emergencies. [1][2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly describes playbooks as documented procedures with actionable steps for people to follow in particular scenarios.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 250.45169999066275,
+      "total_ms": 1921.416599987424,
+      "input_tokens": 731,
+      "output_tokens": 49
+    },
+    {
+      "id": "ir-17",
+      "type": "fact",
+      "answerable": true,
+      "question": "Who are the authors of NIST SP 800-61r3?",
+      "reference": "Alex Nelson, Sanjay Rekhi, Murugiah Souppaya, and Karen Scarfone.",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        1,
+        2
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          3
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          45
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          48
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          2
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          2
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          6
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          4
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          2
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          1
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          1
+        ]
+      ],
+      "first_relevant_rank": 4,
+      "answer": "The authors are Alex Nelson, Sanjay Rekhi, Murugiah Souppaya, and Karen Scarfone. [4]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly names all four authors listed in the reference.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 214.75959999952465,
+      "total_ms": 1706.1742000078084,
+      "input_tokens": 804,
+      "output_tokens": 30
+    },
+    {
+      "id": "ir-18",
+      "type": "identifier",
+      "answerable": true,
+      "question": "What should be checked on backups and other restoration assets before they are used?",
+      "reference": "Indicators of compromise, file corruption, and other integrity issues (RC.RP-03).",
+      "document": "NIST.SP.800-61r3.pdf",
+      "pages": [
+        42
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          30
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          30
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          42
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          28
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          30
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Check backups and other restoration assets for indicators of compromise, file corruption, and other integrity issues before using them for restoration. [1][2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer includes indicators of compromise, file corruption, and other integrity issues as checks before restoration.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 383.4241000004113,
+      "total_ms": 1933.9671000052476,
+      "input_tokens": 842,
+      "output_tokens": 32
+    },
+    {
+      "id": "id-01",
+      "type": "fact",
+      "answerable": true,
+      "question": "What is the minimum length for a subscriber-chosen memorized secret, and what maximum length should verifiers permit?",
+      "reference": "At least 8 characters; verifiers should permit at least 64 characters.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        24
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          80
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "A subscriber-chosen memorized secret must be at least 8 characters long, and verifiers should permit secrets at least 64 characters long.[1][2][3]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly states a minimum of 8 characters and that verifiers should permit at least 64 characters.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 241.15220000385307,
+      "total_ms": 1807.0894999982556,
+      "input_tokens": 796,
+      "output_tokens": 38
+    },
+    {
+      "id": "id-02",
+      "type": "fact",
+      "answerable": true,
+      "question": "Should verifiers require users to change their passwords periodically?",
+      "reference": "No. Verifiers SHOULD NOT require arbitrary (e.g., periodic) changes, but SHALL force a change if there is evidence of compromise.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        25
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          65
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          64
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          57
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "No. Verifiers should not require periodic password changes unless the user requests one or there is evidence the authenticator has been compromised. [1][2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly says periodic password changes should not be required and that a change should be forced when compromise is suspected.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 245.23490000865422,
+      "total_ms": 1567.7415000100154,
+      "input_tokens": 820,
+      "output_tokens": 34
+    },
+    {
+      "id": "id-03",
+      "type": "list",
+      "answerable": true,
+      "question": "What kinds of values should new passwords be checked against?",
+      "reference": "A list of commonly used, expected, or compromised values, such as passwords from previous breach corpuses, dictionary words, repetitive or sequential characters, and context-specific words like the service name or username.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        25
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          65
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "New passwords should be checked against values known to be commonly used, expected, or compromised\u2014such as passwords from previous breaches, dictionary words, repetitive or sequential characters, and context-specific terms like the service name or username. [2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer includes all the reference categories and examples.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 205.76310000615194,
+      "total_ms": 1514.174500000081,
+      "input_tokens": 705,
+      "output_tokens": 50
+    },
+    {
+      "id": "id-04",
+      "type": "fact",
+      "answerable": true,
+      "question": "How long must the salt be when hashing memorized secrets, and how many PBKDF2 iterations are typical?",
+      "reference": "The salt must be at least 32 bits; PBKDF2 should typically use at least 10,000 iterations.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        26
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          80
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "The salt must be at least 32 bits long [4]. PBKDF2 typically uses at least 10,000 iterations [2].",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly states a salt of at least 32 bits and at least 10,000 PBKDF2 iterations.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 246.133299995563,
+      "total_ms": 1675.2717000053963,
+      "input_tokens": 846,
+      "output_tokens": 32
+    },
+    {
+      "id": "id-05",
+      "type": "fact",
+      "answerable": true,
+      "question": "How often must a subscriber reauthenticate at AAL2?",
+      "reference": "At least once per 12 hours regardless of activity, and after any period of inactivity of 30 minutes or longer.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        19
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          50
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          44
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "At AAL2, a subscriber must reauthenticate at least once every 12 hours during an extended session, regardless of activity, and after any inactivity period of 30 minutes or longer. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It states both requirements: reauthentication at least every 12 hours regardless of activity and after 30 minutes or more of inactivity.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 242.44779998844024,
+      "total_ms": 1895.4516999947373,
+      "input_tokens": 805,
+      "output_tokens": 44
+    },
+    {
+      "id": "id-06",
+      "type": "fact",
+      "answerable": true,
+      "question": "What is the inactivity timeout for reauthentication at AAL3?",
+      "reference": "15 minutes (with reauthentication also required at least once per 12 hours).",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        21
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          50
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          17
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          50
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          48
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          64
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "At AAL3, reauthentication is required after **15 minutes or longer of inactivity**. [2][3]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly gives the AAL3 inactivity reauthentication timeout as 15 minutes.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 217.05700000165962,
+      "total_ms": 1356.7882000061218,
+      "input_tokens": 821,
+      "output_tokens": 27
+    },
+    {
+      "id": "id-07",
+      "type": "fact",
+      "answerable": true,
+      "question": "What is the maximum number of consecutive failed authentication attempts allowed on a single account?",
+      "reference": "No more than 100 (unless otherwise specified for an authenticator type).",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        36
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          37
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          31
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          63
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          33
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          57
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "No more than 100 consecutive failed authentication attempts are allowed on a single account, unless the authenticator\u2019s specific requirements say otherwise. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly states a maximum of 100 attempts, with an exception for authenticator-specific requirements.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 243.46349999541417,
+      "total_ms": 1492.6099000003887,
+      "input_tokens": 734,
+      "output_tokens": 32
+    },
+    {
+      "id": "id-08",
+      "type": "fact",
+      "answerable": true,
+      "question": "What false match rate must a biometric system achieve?",
+      "reference": "An FMR of 1 in 1000 or better.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        38
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          37
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          32
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          71
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          39
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "A biometric system must achieve a false match rate (FMR) of 1 in 1,000 or better under zero-effort impostor conditions. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly states that the FMR must be 1 in 1,000 or better.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 247.5648999970872,
+      "total_ms": 2200.0736000045436,
+      "input_tokens": 793,
+      "output_tokens": 37
+    },
+    {
+      "id": "id-09",
+      "type": "fact",
+      "answerable": true,
+      "question": "How many consecutive failed biometric attempts are allowed?",
+      "reference": "No more than 5, or 10 if presentation attack detection (PAD) meeting the requirements is implemented.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        38
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          71
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          35
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          32
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          71
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          33
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "No more than 5 consecutive failed attempts are allowed, or 10 if presentation attack detection (PAD) meeting the requirements is implemented. [1]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly states the limit is 5 attempts, or 10 when compliant PAD is implemented.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 220.62109998660162,
+      "total_ms": 1770.0706999894464,
+      "input_tokens": 789,
+      "output_tokens": 33
+    },
+    {
+      "id": "id-10",
+      "type": "fact",
+      "answerable": true,
+      "question": "Within what time must out-of-band authentication be completed?",
+      "reference": "10 minutes; otherwise the authentication is considered invalid.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        29
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          65
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          37
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          32
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          66
+        ]
+      ],
+      "first_relevant_rank": 3,
+      "answer": "Out-of-band authentication must be completed within 10 minutes. [3]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "It correctly states that out-of-band authentication must be completed within 10 minutes.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 214.08119999978226,
+      "total_ms": 1539.700499997707,
+      "input_tokens": 785,
+      "output_tokens": 18
+    },
+    {
+      "id": "id-11",
+      "type": "fact",
+      "answerable": true,
+      "question": "What is the status of using the PSTN (phone/SMS) for out-of-band verification?",
+      "reference": "It is RESTRICTED.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        30
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          30
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          30
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          28
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          65
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          29
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "Use of the PSTN (SMS or voice) for out-of-band verification is **restricted**. [2] Verifiers must verify that the registered number is associated with a specific physical device and should consider risk indicators such as SIM changes, device swaps, or number porting. [5]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly states that PSTN-based out-of-band verification is restricted.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 214.85619999293704,
+      "total_ms": 1598.185700000613,
+      "input_tokens": 843,
+      "output_tokens": 62
+    },
+    {
+      "id": "id-12",
+      "type": "fact",
+      "answerable": true,
+      "question": "How much entropy must look-up secrets have?",
+      "reference": "At least 20 bits of entropy.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        27
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          65
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          27
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          80
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          48
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Look-up secrets must have at least 20 bits of entropy. [1][5]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly states that look-up secrets must have at least 20 bits of entropy.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 222.51710000273306,
+      "total_ms": 2098.212400000193,
+      "input_tokens": 843,
+      "output_tokens": 21
+    },
+    {
+      "id": "id-13",
+      "type": "definition",
+      "answerable": true,
+      "question": "What does authentication at AAL3 require?",
+      "reference": "Proof of possession of a key through a cryptographic protocol, using a hardware-based authenticator and an authenticator providing verifier impersonation resistance, with two distinct authentication factors.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        14
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          14
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          50
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          16
+        ]
+      ],
+      "first_relevant_rank": 2,
+      "answer": "AAL3 authentication requires claimants to prove possession and control of two distinct authentication factors using secure protocols and approved cryptographic techniques. It also requires a hardware-based authenticator and verifier impersonation resistance; the same device may meet both requirements. [2][3]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer includes all required elements: proof of possession using cryptographic protocols, a hardware-based authenticator, verifier impersonation resistance, and two distinct factors.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 225.5903000041144,
+      "total_ms": 1479.8716999939643,
+      "input_tokens": 718,
+      "output_tokens": 56
+    },
+    {
+      "id": "id-14",
+      "type": "fact",
+      "answerable": true,
+      "question": "What minimum AAL must agencies select when self-asserted PII is made available online?",
+      "reference": "AAL2.",
+      "document": "NIST.SP.800-63b.pdf",
+      "pages": [
+        16
+      ],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          16
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          16
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          22
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          60
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          60
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          13
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          60
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          60
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          22
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          20
+        ]
+      ],
+      "first_relevant_rank": 1,
+      "answer": "Agencies must select a minimum of AAL2 when self-asserted PII is made available online. [1][2]",
+      "abstained": false,
+      "declined": null,
+      "correctness": 1.0,
+      "correctness_reason": "The answer correctly states that the minimum required AAL is AAL2.",
+      "faithfulness": 1.0,
+      "unsupported": "",
+      "retrieval_ms": 205.8721999928821,
+      "total_ms": 1489.4868999981554,
+      "input_tokens": 802,
+      "output_tokens": 30
+    },
+    {
+      "id": "neg-01",
+      "type": "unanswerable",
+      "answerable": false,
+      "question": "What is the annual budget of NIST's Applied Cybersecurity Division?",
+      "reference": "Not in the documents.",
+      "document": null,
+      "pages": [],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          32
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          1
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          3
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          24
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          44
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          32
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          3
+        ]
+      ],
+      "first_relevant_rank": null,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": true,
+      "correctness": null,
+      "correctness_reason": "The answer says the documents don't provide the requested budget and gives no specific figure.",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 231.5212999965297,
+      "total_ms": 1361.1020999960601,
+      "input_tokens": 623,
+      "output_tokens": 15
+    },
+    {
+      "id": "neg-02",
+      "type": "unanswerable",
+      "answerable": false,
+      "question": "How many organizations worldwide have adopted CSF 2.0?",
+      "reference": "Not in the documents.",
+      "document": null,
+      "pages": [],
+      "retrieved": [
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          7
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          2
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          20
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          6
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          5
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          31
+        ]
+      ],
+      "first_relevant_rank": null,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": true,
+      "correctness": null,
+      "correctness_reason": "It says the provided documents don't contain the information and gives no specific answer.",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 219.93559999100398,
+      "total_ms": 1042.0581999933347,
+      "input_tokens": 769,
+      "output_tokens": 15
+    },
+    {
+      "id": "neg-03",
+      "type": "unanswerable",
+      "answerable": false,
+      "question": "What passphrase length is recommended for WPA3 Wi-Fi networks?",
+      "reference": "Not in the documents.",
+      "document": null,
+      "pages": [],
+      "retrieved": [
+        [
+          "NIST.SP.800-63b.pdf",
+          64
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          34
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          80
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          79
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          36
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          25
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          78
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          34
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          80
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          24
+        ]
+      ],
+      "first_relevant_rank": null,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": true,
+      "correctness": null,
+      "correctness_reason": "The answer states that the documents don't contain the requested information and gives no specific passphrase length.",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 212.91539999947418,
+      "total_ms": 1344.9222999915946,
+      "input_tokens": 771,
+      "output_tokens": 15
+    },
+    {
+      "id": "neg-04",
+      "type": "unanswerable",
+      "answerable": false,
+      "question": "Which company won NIST's 2024 cybersecurity innovation award?",
+      "reference": "Not in the documents.",
+      "document": null,
+      "pages": [],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          44
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          1
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          3
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          2
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          32
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          6
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          4
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          3
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          26
+        ]
+      ],
+      "first_relevant_rank": null,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": true,
+      "correctness": null,
+      "correctness_reason": "The answer says the provided documents do not contain the information and does not guess a company.",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 394.6035999979358,
+      "total_ms": 1226.44680000667,
+      "input_tokens": 652,
+      "output_tokens": 15
+    },
+    {
+      "id": "neg-05",
+      "type": "unanswerable",
+      "answerable": false,
+      "question": "What fine does GDPR impose for notifying a data breach late?",
+      "reference": "Not in the documents.",
+      "document": null,
+      "pages": [],
+      "retrieved": [
+        [
+          "NIST.SP.800-61r3.pdf",
+          39
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          38
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          20
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          19
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          43
+        ],
+        [
+          "NIST.CSWP.29.pdf",
+          18
+        ],
+        [
+          "NIST.SP.800-63b.pdf",
+          21
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          26
+        ],
+        [
+          "NIST.SP.800-61r3.pdf",
+          10
+        ]
+      ],
+      "first_relevant_rank": null,
+      "answer": "I don't know. The provided documents don't contain that information.",
+      "abstained": true,
+      "declined": true,
+      "correctness": null,
+      "correctness_reason": "The answer says the provided documents don't contain the information and gives no specific fine.",
+      "faithfulness": null,
+      "unsupported": "",
+      "retrieval_ms": 234.57879999477882,
+      "total_ms": 1355.9323999943445,
+      "input_tokens": 758,
+      "output_tokens": 15
+    }
+  ]
+}

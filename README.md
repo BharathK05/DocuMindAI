@@ -20,12 +20,19 @@ pinned: false
 
 ## How it works
 1. The client asks the API for a presigned URL and uploads the PDF **directly to S3**.
-2. An **SQS** message triggers the ingestion worker: parse pages → chunk (page-aware) →
-   embed in batches with OpenAI `text-embedding-3-small` → store chunks and float16 vectors in
-   **DynamoDB** (one partition per user).
-3. A question is embedded and matched by exact cosine search in NumPy. The top chunks go to
-   the chat model (`gpt-6-luna` by default, configurable) inside `<source>` tags, and the answer
-   streams back over Server-Sent Events with `[n]` citations to document and page.
+2. An **SQS** message triggers the ingestion worker:
+   - parse pages;
+   - strip running headers and TOC lines;
+   - cut structure-aware chunks of about 350 tokens, each tagged "Title > Section";
+   - embed them in batches with OpenAI `text-embedding-3-small`;
+   - store chunks and float16 vectors in **DynamoDB**, one partition per user.
+3. A question goes through **hybrid retrieval**: BM25 plus embeddings, merged with reciprocal rank fusion. An **LLM reranker** then orders the top 20. The top chunks go to the chat model (`gpt-6-luna` by default, configurable) inside `<source>` tags. The answer streams back over Server-Sent Events with `[n]` citations to document and page.
+
+**Measured quality** (50-question golden set; see [docs/evaluation.md](docs/evaluation.md)):
+- Recall@5 went from 0.92 to **0.98**, and MRR@10 from 0.70 to **0.88**.
+- Answer correctness went from 0.78 to **0.96**, with faithfulness at **1.00**.
+- It declined all unanswerable questions.
+- Cost is about $0.0006 per query.
 
 ## Run locally
 
