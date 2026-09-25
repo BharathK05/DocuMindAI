@@ -4,10 +4,9 @@
  *    Amplify library stores and refreshes the tokens.
  *  - local:   a development token minted by `python -m documind.scripts.dev_token`, pasted in.
  */
-import { Amplify } from "aws-amplify";
-import * as cognito from "aws-amplify/auth";
-
 import type { AuthConfig } from "./config";
+
+type CognitoLib = typeof import("aws-amplify/auth");
 
 const DEV_TOKEN_KEY = "documind.devToken";
 
@@ -18,21 +17,33 @@ export interface SignedInUser {
 export type SignInOutcome = "done" | "confirm_sign_up" | "unsupported";
 
 let configured: AuthConfig | null = null;
+let cognitoLib: Promise<CognitoLib> | null = null;
 
 export function configureAuth(auth: AuthConfig): void {
   if (configured) return;
   configured = auth;
   if (auth.mode === "cognito") {
-    Amplify.configure({
-      Auth: {
-        Cognito: {
-          userPoolId: auth.userPoolId,
-          userPoolClientId: auth.clientId,
-          loginWith: { email: true },
-        },
+    // Loaded on demand: the landing page and local mode never download Amplify.
+    cognitoLib = Promise.all([import("aws-amplify"), import("aws-amplify/auth")]).then(
+      ([{ Amplify }, lib]) => {
+        Amplify.configure({
+          Auth: {
+            Cognito: {
+              userPoolId: auth.userPoolId,
+              userPoolClientId: auth.clientId,
+              loginWith: { email: true },
+            },
+          },
+        });
+        return lib;
       },
-    });
+    );
   }
+}
+
+function cognito(): Promise<CognitoLib> {
+  if (!cognitoLib) throw new Error("Cognito sign-in isn't configured");
+  return cognitoLib;
 }
 
 function mode(): AuthConfig["mode"] {
@@ -62,7 +73,7 @@ export function decodeClaims(token: string): Record<string, unknown> | null {
 export async function getAccessToken(): Promise<string | null> {
   if (mode() === "local") return readDevToken();
   try {
-    const session = await cognito.fetchAuthSession(); // refreshes an expired token
+    const session = await (await cognito()).fetchAuthSession(); // refreshes an expired token
     return session.tokens?.accessToken.toString() ?? null;
   } catch {
     return null;
@@ -78,8 +89,8 @@ export async function currentUser(): Promise<SignedInUser | null> {
     return { label: String(claims.sub ?? "developer") };
   }
   try {
-    await cognito.getCurrentUser();
-    const attributes = await cognito.fetchUserAttributes();
+    await (await cognito()).getCurrentUser();
+    const attributes = await (await cognito()).fetchUserAttributes();
     return { label: attributes.email ?? "Signed in" };
   } catch {
     return null;
@@ -93,7 +104,7 @@ export function saveDevToken(token: string): void {
 }
 
 export async function signIn(email: string, password: string): Promise<SignInOutcome> {
-  const { nextStep } = await cognito.signIn({ username: email, password });
+  const { nextStep } = await (await cognito()).signIn({ username: email, password });
   switch (nextStep.signInStep) {
     case "DONE":
       return "done";
@@ -101,25 +112,27 @@ export async function signIn(email: string, password: string): Promise<SignInOut
       return "confirm_sign_up";
     default:
       // e.g. an MFA challenge set up outside this app
-      await cognito.signOut().catch(() => {});
+      await (await cognito()).signOut().catch(() => {});
       return "unsupported";
   }
 }
 
 export async function signUp(email: string, password: string): Promise<void> {
-  await cognito.signUp({ username: email, password, options: { userAttributes: { email } } });
+  await (
+    await cognito()
+  ).signUp({ username: email, password, options: { userAttributes: { email } } });
 }
 
 export async function confirmSignUp(email: string, code: string): Promise<void> {
-  await cognito.confirmSignUp({ username: email, confirmationCode: code.trim() });
+  await (await cognito()).confirmSignUp({ username: email, confirmationCode: code.trim() });
 }
 
 export async function resendCode(email: string): Promise<void> {
-  await cognito.resendSignUpCode({ username: email });
+  await (await cognito()).resendSignUpCode({ username: email });
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  await cognito.resetPassword({ username: email });
+  await (await cognito()).resetPassword({ username: email });
 }
 
 export async function confirmPasswordReset(
@@ -127,7 +140,9 @@ export async function confirmPasswordReset(
   code: string,
   newPassword: string,
 ): Promise<void> {
-  await cognito.confirmResetPassword({
+  await (
+    await cognito()
+  ).confirmResetPassword({
     username: email,
     confirmationCode: code.trim(),
     newPassword,
@@ -143,7 +158,7 @@ export async function signOut(): Promise<void> {
     }
     return;
   }
-  await cognito.signOut();
+  await (await cognito()).signOut();
 }
 
 /** Cognito's error messages are already user-facing ("Incorrect username or password."). */

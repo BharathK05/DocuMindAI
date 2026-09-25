@@ -3,11 +3,7 @@ import Link from "next/link";
 /** Wordmark: an ink "page" with a highlighter stripe, then the name. */
 export function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link
-      href={href}
-      className="group inline-flex items-center gap-2.5"
-      aria-label="DocuMind AI home"
-    >
+    <Link href={href} className="group inline-flex items-center gap-2.5">
       <svg viewBox="0 0 24 24" className="size-7" aria-hidden>
         <rect x="4" y="2.5" width="16" height="19" rx="3.5" className="fill-ink" />
         <rect x="7.5" y="8" width="9" height="3" rx="1.2" className="fill-marker" />

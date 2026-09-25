@@ -15,7 +15,10 @@ export default function LoginPage() {
         <Logo />
         <ThemeToggle />
       </header>
-      <main className="flex flex-1 items-center justify-center px-4 pb-16">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 pb-16">
+        <p className="mb-6 max-w-sm text-center font-display text-2xl tracking-tight text-balance">
+          Answers from your PDFs, with the page they came from.
+        </p>
         <div className="w-full max-w-sm rounded-card border border-line bg-card p-6 shadow-sm sm:p-8">
           <Suspense>
             <LoginForm />

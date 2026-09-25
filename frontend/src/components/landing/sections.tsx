@@ -264,12 +264,14 @@ export function Proof() {
         </span>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((s, i) => (
-            <Reveal key={s.label} delay={i * 0.06}>
-              <div className="h-full rounded-card border border-line bg-card p-6">
-                <dt className="font-mono text-xs text-muted uppercase">{s.label}</dt>
-                <dd className="mt-3 font-display text-5xl tracking-tight">{s.value}</dd>
-                <dd className="mt-3 text-sm text-muted">{s.detail}</dd>
-              </div>
+            <Reveal
+              key={s.label}
+              delay={i * 0.06}
+              className="h-full rounded-card border border-line bg-card p-6"
+            >
+              <dt className="font-mono text-xs text-muted uppercase">{s.label}</dt>
+              <dd className="mt-3 font-display text-5xl tracking-tight">{s.value}</dd>
+              <dd className="mt-3 text-sm text-muted">{s.detail}</dd>
             </Reveal>
           ))}
         </dl>
@@ -314,14 +316,17 @@ export function HowItWorks() {
       />
       <ol className="grid gap-4 md:grid-cols-3">
         {STEPS.map((step, i) => (
-          <Reveal key={step.title} delay={i * 0.08}>
-            <li className="h-full list-none rounded-card border border-line bg-card p-6 sm:p-8">
-              <span className="font-display text-6xl text-accent italic" aria-hidden>
-                {i + 1}
-              </span>
-              <h3 className="mt-6 font-display text-xl tracking-tight">{step.title}</h3>
-              <p className="mt-2 leading-relaxed text-muted">{step.body}</p>
-            </li>
+          <Reveal
+            key={step.title}
+            as="li"
+            delay={i * 0.08}
+            className="h-full rounded-card border border-line bg-card p-6 sm:p-8"
+          >
+            <span className="font-display text-6xl text-accent italic" aria-hidden>
+              {i + 1}
+            </span>
+            <h3 className="mt-6 font-display text-xl tracking-tight">{step.title}</h3>
+            <p className="mt-2 leading-relaxed text-muted">{step.body}</p>
           </Reveal>
         ))}
       </ol>
