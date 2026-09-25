@@ -12,6 +12,7 @@ from documind.core.errors import InvalidInputError, NotFoundError
 from documind.domain import Citation, DocumentStatus, Message, ScoredChunk, TokenUsage
 from documind.providers.base import EmbeddingProvider, LLMProvider, StreamEnd, TextDelta
 from documind.repositories.base import DocumentRepository, VectorStore
+from documind.services.context import PER_MESSAGE_OVERHEAD
 from documind.services.prompts import build_messages
 from documind.services.rerank import Reranker
 
@@ -87,7 +88,7 @@ class QueryService:
         document_ids: Sequence[str] | None = None,
     ) -> Answer:
         retrieval = await self.retrieve(user_id, question, document_ids)
-        return await self.generate(question, history, retrieval)
+        return await self.generate(question, self.client_history(history), retrieval)
 
     async def generate(
         self, question: str, history: Sequence[Message], retrieval: "Retrieval"
@@ -97,7 +98,7 @@ class QueryService:
         question = self._validate(question)
         if not retrieval.chunks:
             return Answer(NO_DOCUMENTS_ANSWER, [], retrieval.usage)
-        retrieval = self._fit_budget(retrieval)
+        retrieval = self.fit_budget(retrieval)
         completion = await self._llm.complete(
             self._messages(question, history, retrieval),
             max_output_tokens=self._settings.chat_max_output_tokens,
@@ -113,15 +114,22 @@ class QueryService:
         history: Sequence[Message] = (),
         document_ids: Sequence[str] | None = None,
     ) -> AsyncIterator[QueryEvent]:
+        retrieval = await self.retrieve(user_id, question, document_ids)
+        async for event in self.stream_from(question, self.client_history(history), retrieval):
+            yield event
+
+    async def stream_from(
+        self, question: str, history: Sequence[Message], retrieval: Retrieval
+    ) -> AsyncIterator[QueryEvent]:
+        """Stream an answer from an existing retrieval (sources, tokens, then done)."""
         started = time.perf_counter()
         question = self._validate(question)
-        retrieval = await self.retrieve(user_id, question, document_ids)
         if not retrieval.chunks:
             yield SourcesEvent([])
             yield TextDelta(NO_DOCUMENTS_ANSWER)
             yield DoneEvent(retrieval.usage)
             return
-        retrieval = self._fit_budget(retrieval)
+        retrieval = self.fit_budget(retrieval)
         # Sources go out first so the UI can render citation cards while the answer streams.
         yield SourcesEvent(retrieval.citations())
         async for event in self._llm.stream(
@@ -187,7 +195,7 @@ class QueryService:
             chunks, usage = reranked.chunks, reranked.usage
         return Retrieval(chunks[:top_k], ready, usage)
 
-    def _fit_budget(self, retrieval: Retrieval) -> Retrieval:
+    def fit_budget(self, retrieval: Retrieval) -> Retrieval:
         """Keep best-first chunks while they fit ``context_token_budget`` (always at least one),
         so a few huge chunks can't blow up prompt size and cost."""
         kept: list[ScoredChunk] = []
@@ -200,13 +208,24 @@ class QueryService:
             used += tokens
         return Retrieval(kept, retrieval.filenames, retrieval.usage)
 
+    def client_history(self, history: Sequence[Message]) -> list[Message]:
+        """History sent by a stateless client: plain turns only (a client must never inject a
+        system message), and only the most recent ones, which bounds prompt size."""
+        turns = [m for m in history if m.role in ("user", "assistant")]
+        return turns[-self._settings.max_history_messages :]
+
+    def prompt_tokens(self, question: str, history: Sequence[Message], retrieval: Retrieval) -> int:
+        """Tokens the model will receive for this turn (what the context bar shows)."""
+        messages = self._messages(question, history, self.fit_budget(retrieval))
+        return sum(
+            len(self._encoding.encode(m.content, disallowed_special=())) + PER_MESSAGE_OVERHEAD
+            for m in messages
+        )
+
     def _messages(
         self, question: str, history: Sequence[Message], retrieval: Retrieval
     ) -> list[Message]:
-        # Only plain conversation turns are accepted from the client, and only the most recent
-        # ones, which bounds prompt size (history token budgets arrive with the usage bars).
         turns = [m for m in history if m.role in ("user", "assistant")]
-        turns = turns[-self._settings.max_history_messages :]
         return build_messages(
             question,
             turns,

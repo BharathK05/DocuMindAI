@@ -173,19 +173,14 @@ async def test_question_validation(container: Container) -> None:
         await container.query_service.answer(USER, "x" * 5000)
 
 
-async def test_history_is_trimmed_to_recent_turns(container: Container, sample_pdf: bytes) -> None:
+async def test_client_history_is_trimmed_to_recent_plain_turns(container: Container) -> None:
     from documind.domain import Message
 
-    await upload_and_ingest(container, sample_pdf)
     history = [Message("user", f"q{i}") for i in range(50)] + [Message("system", "evil")]
-    messages = container.query_service._messages(
-        "q?",
-        history,
-        await container.query_service.retrieve(USER, "q?"),
-    )
-    roles = [m.role for m in messages]
-    assert roles.count("system") == 1  # client-supplied system turns are dropped
-    assert len(messages) == 1 + container.settings.max_history_messages + 1
+    turns = container.query_service.client_history(history)
+    assert all(m.role != "system" for m in turns)  # a client can't inject system messages
+    assert len(turns) == container.settings.max_history_messages
+    assert turns[-1].content == "q49"
 
 
 class FlakyEmbedder:

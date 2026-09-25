@@ -6,7 +6,17 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from documind.domain import Citation, Document, DocumentStatus, Message, TokenUsage
+from documind.domain import (
+    Citation,
+    Conversation,
+    ConversationMessage,
+    Document,
+    DocumentStatus,
+    Message,
+    TokenUsage,
+)
+from documind.services.chat import ContextUsage
+from documind.services.usage import AccountUsage
 
 
 class DocumentOut(BaseModel):
@@ -58,6 +68,9 @@ class QueryRequest(BaseModel):
     history: list[ChatTurn] = Field(default_factory=list, max_length=50)
     # Restrict retrieval to these documents; omit to search all of the user's documents.
     document_ids: list[str] | None = Field(default=None, max_length=50)
+    # Continue a stored conversation (server keeps and manages history). Mutually exclusive
+    # with `history`, which is for stateless clients.
+    conversation_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
 
 
 class CitationOut(BaseModel):
@@ -82,10 +95,94 @@ class UsageOut(BaseModel):
         return cls(input_tokens=u.input_tokens, output_tokens=u.output_tokens)
 
 
+class ContextOut(BaseModel):
+    """Drives the context-window bar: e.g. 18.4k / 16k → amber at 70%, red at 90%."""
+
+    tokens: int
+    limit: int
+    fraction: float
+    notice: str | None = None  # set when older turns were summarized or dropped
+
+    @classmethod
+    def from_domain(cls, c: ContextUsage) -> "ContextOut":
+        return cls(tokens=c.tokens, limit=c.limit, fraction=c.fraction, notice=c.notice)
+
+
+class AccountOut(BaseModel):
+    """Drives the usage-limit bar."""
+
+    tokens_used_today: int
+    daily_quota: int
+    remaining: int
+    reset_at: datetime
+    cost_usd_today: float
+
+    @classmethod
+    def from_domain(cls, a: AccountUsage) -> "AccountOut":
+        return cls(
+            tokens_used_today=a.tokens_used_today,
+            daily_quota=a.daily_quota,
+            remaining=a.remaining,
+            reset_at=a.reset_at,
+            cost_usd_today=a.cost_usd_today,
+        )
+
+
 class QueryResponse(BaseModel):
     answer: str
     citations: list[CitationOut]
-    usage: UsageOut
+    usage: UsageOut  # tokens used by this request
+    context: ContextOut
+    account: AccountOut
+    conversation_id: str | None = None
+
+
+class UsageResponse(BaseModel):
+    account: AccountOut
+    context: ContextOut | None = None  # only when a conversation_id is given
+
+
+class CreateConversationRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=200)
+
+
+class ConversationOut(BaseModel):
+    conversation_id: str
+    title: str
+    message_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_domain(cls, c: Conversation) -> "ConversationOut":
+        return cls.model_validate(c.model_dump(include=set(cls.model_fields)))
+
+
+class ConversationList(BaseModel):
+    conversations: list[ConversationOut]
+
+
+class MessageOut(BaseModel):
+    index: int
+    role: Literal["user", "assistant"]
+    content: str
+    citations: list[CitationOut]
+    created_at: datetime
+
+    @classmethod
+    def from_domain(cls, m: ConversationMessage) -> "MessageOut":
+        return cls(
+            index=m.index,
+            role=m.role,
+            content=m.content,
+            citations=[CitationOut.from_domain(c) for c in m.citations],
+            created_at=m.created_at,
+        )
+
+
+class ConversationDetail(BaseModel):
+    conversation: ConversationOut
+    messages: list[MessageOut]
 
 
 class ErrorBody(BaseModel):

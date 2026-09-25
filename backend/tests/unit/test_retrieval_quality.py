@@ -158,10 +158,10 @@ def test_context_budget_keeps_best_chunks_that_fit(settings: Settings) -> None:
         settings.model_copy(update={"context_token_budget": 25})
     ).query_service
     retrieval = Retrieval(scored(["word " * 20, "word " * 10, "tiny"]), {"d": "a.pdf"})
-    fitted = service._fit_budget(retrieval)
+    fitted = service.fit_budget(retrieval)
     assert [len(s.chunk.text.split()) for s in fitted.chunks] == [20]
     huge = Retrieval(scored(["word " * 500]), {"d": "a.pdf"})
-    assert len(service._fit_budget(huge).chunks) == 1
+    assert len(service.fit_budget(huge).chunks) == 1
 
 
 def test_prompt_versions() -> None:

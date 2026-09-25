@@ -160,3 +160,82 @@ async def test_worker_poll_deletes_successes_and_keeps_failures(
         QueueUrl=queue.queue_url, AttributeNames=["ApproximateNumberOfMessagesNotVisible"]
     )["Attributes"]
     assert attrs["ApproximateNumberOfMessagesNotVisible"] == "1"
+
+
+async def test_dynamo_rate_limiter_usage_and_ttl(aws_settings: Settings) -> None:
+    from documind.core.errors import RateLimitedError
+    from documind.domain import TokenUsage
+    from documind.repositories.dynamodb import DynamoTable
+    from documind.repositories.usage import DynamoRateLimiter, DynamoUsageRepository
+
+    client = boto3.client("dynamodb", region_name=aws_settings.aws_region)
+    table = DynamoTable(client, aws_settings.dynamodb_table)
+    ttl = client.describe_time_to_live(TableName=aws_settings.dynamodb_table)
+    assert ttl["TimeToLiveDescription"]["AttributeName"] == "expires_at"
+
+    limiter = DynamoRateLimiter(table, clock=lambda: 1_000_000.0)
+    await limiter.hit("u1", "query", limit=2, window_seconds=60)
+    await limiter.hit("u1", "query", limit=2, window_seconds=60)
+    with pytest.raises(RateLimitedError):
+        await limiter.hit("u1", "query", limit=2, window_seconds=60)
+    await limiter.hit("u2", "query", limit=2, window_seconds=60)  # separate partition
+
+    usage = DynamoUsageRepository(table)
+    await usage.add("u1", "2026-09-25", TokenUsage(100, 10), expires_at=2_000_000_000)
+    await usage.add("u1", "2026-09-25", TokenUsage(50, 5), expires_at=2_000_000_000)
+    day = await usage.get("u1", "2026-09-25")
+    assert (day.input_tokens, day.output_tokens, day.requests) == (150, 15, 2)
+    assert (await usage.get("u2", "2026-09-25")).total_tokens == 0
+
+
+async def test_dynamo_conversations(aws_settings: Settings) -> None:
+    from documind.domain import Citation, Conversation
+    from documind.repositories.base import NewMessage
+    from documind.repositories.conversations import DynamoConversationRepository
+    from documind.repositories.dynamodb import DynamoTable
+
+    table = DynamoTable(
+        boto3.client("dynamodb", region_name=aws_settings.aws_region), aws_settings.dynamodb_table
+    )
+    repo = DynamoConversationRepository(table)
+    cid = "c" * 32
+    await repo.create(Conversation(user_id="u1", conversation_id=cid, title="Tiers"))
+    citation = Citation(1, "d" * 32, "csf.pdf", 12, 0.9, "Tier 1: Partial")
+    await repo.append(
+        "u1", cid, [NewMessage("user", "q1"), NewMessage("assistant", "a1", [citation])]
+    )
+    updated = await repo.append(
+        "u1", cid, [NewMessage("user", "q2"), NewMessage("assistant", "a2")]
+    )
+    assert updated.message_count == 4
+
+    messages = await repo.messages("u1", cid)
+    assert [(m.index, m.content) for m in messages] == [(0, "q1"), (1, "a1"), (2, "q2"), (3, "a2")]
+    assert messages[1].citations[0].page == 12
+
+    await repo.set_summary("u1", cid, "summary so far", 2)
+    stored = await repo.get("u1", cid)
+    assert stored is not None and (stored.summary, stored.summarized_through) == (
+        "summary so far",
+        2,
+    )
+    assert await repo.get("u2", cid) is None  # other tenants can't see it
+    with pytest.raises(NotFoundError):
+        await repo.append("u2", cid, [NewMessage("user", "x")])
+
+    await repo.delete("u1", cid)
+    assert await repo.get("u1", cid) is None
+    assert await repo.messages("u1", cid) == []
+
+
+async def test_dynamo_document_expiry_is_set_then_cleared(
+    aws: Container, sample_pdf: bytes
+) -> None:
+    ticket = await aws.document_service.create_upload("u1", "r.pdf", len(sample_pdf))
+    stored = await aws.documents.get("u1", ticket.document.document_id)
+    assert stored is not None and stored.expires_at is not None
+    boto3.client("s3", region_name=aws.settings.aws_region).put_object(
+        Bucket=aws.settings.s3_bucket, Key=ticket.document.blob_key, Body=sample_pdf
+    )
+    completed = await aws.document_service.complete_upload("u1", ticket.document.document_id)
+    assert completed.expires_at is None

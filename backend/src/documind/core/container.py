@@ -15,7 +15,19 @@ from documind.core.config import Backend, LLMProviderName, RerankerName, Setting
 from documind.providers.base import EmbeddingProvider, LLMProvider
 from documind.providers.fake import FakeEmbeddingProvider, FakeLLMProvider
 from documind.providers.openai_provider import OpenAIChatProvider, OpenAIEmbeddingProvider
-from documind.repositories.base import BlobStore, DocumentRepository, JobQueue, VectorStore
+from documind.repositories.base import (
+    BlobStore,
+    ConversationRepository,
+    DocumentRepository,
+    JobQueue,
+    RateLimiter,
+    UsageRepository,
+    VectorStore,
+)
+from documind.repositories.conversations import (
+    DynamoConversationRepository,
+    InMemoryConversationRepository,
+)
 from documind.repositories.dynamodb import DynamoDocumentRepository, DynamoTable, DynamoVectorStore
 from documind.repositories.memory import (
     InlineJobQueue,
@@ -25,10 +37,20 @@ from documind.repositories.memory import (
 )
 from documind.repositories.s3 import S3BlobStore
 from documind.repositories.sqs import SqsJobQueue
+from documind.repositories.usage import (
+    DynamoRateLimiter,
+    DynamoUsageRepository,
+    InMemoryRateLimiter,
+    InMemoryUsageRepository,
+)
+from documind.services.chat import ChatService
+from documind.services.context import ContextManager, TokenCounter
+from documind.services.conversations import ConversationService
 from documind.services.documents import DocumentService
 from documind.services.ingestion import IngestionService
 from documind.services.query import QueryService
 from documind.services.rerank import LLMReranker
+from documind.services.usage import UsageService
 
 _RETRIES: Any = {"max_attempts": 5, "mode": "adaptive"}
 _BOTO_CONFIG = Config(connect_timeout=5, read_timeout=10, retries=_RETRIES)
@@ -48,6 +70,9 @@ class Container:
     document_service: DocumentService
     ingestion_service: IngestionService
     query_service: QueryService
+    conversation_service: ConversationService
+    usage_service: UsageService
+    chat_service: ChatService
 
 
 def _client(service: str, settings: Settings, endpoint_url: str | None) -> Any:
@@ -102,13 +127,27 @@ def _providers(settings: Settings) -> tuple[EmbeddingProvider, LLMProvider, LLMP
     return embedder, llm, rerank_llm
 
 
-def _storage(settings: Settings) -> tuple[DocumentRepository, VectorStore, BlobStore, JobQueue]:
+@dataclass
+class _Storage:
+    documents: DocumentRepository
+    vectors: VectorStore
+    blobs: BlobStore
+    queue: JobQueue
+    conversations: ConversationRepository
+    usage: UsageRepository
+    limiter: RateLimiter
+
+
+def _storage(settings: Settings) -> _Storage:
     if settings.backend is Backend.MEMORY:
-        return (
+        return _Storage(
             InMemoryDocumentRepository(),
             InMemoryVectorStore(),
             InMemoryBlobStore(),
             InlineJobQueue(),
+            InMemoryConversationRepository(),
+            InMemoryUsageRepository(),
+            InMemoryRateLimiter(),
         )
     table = DynamoTable(
         _client("dynamodb", settings, settings.dynamodb_endpoint_url), settings.dynamodb_table
@@ -119,36 +158,57 @@ def _storage(settings: Settings) -> tuple[DocumentRepository, VectorStore, BlobS
     )
     sqs = _client("sqs", settings, settings.sqs_endpoint_url)
     queue_url = sqs.get_queue_url(QueueName=settings.sqs_queue_name)["QueueUrl"]
-    return (
+    return _Storage(
         DynamoDocumentRepository(table),
         DynamoVectorStore(table),
         S3BlobStore(s3, s3_presign, settings.s3_bucket),
         SqsJobQueue(sqs, queue_url),
+        DynamoConversationRepository(table),
+        DynamoUsageRepository(table),
+        DynamoRateLimiter(table),
     )
 
 
 def build_container(settings: Settings) -> Container:
-    documents, vectors, blobs, queue = _storage(settings)
+    st = _storage(settings)
     embedder, llm, rerank_llm = _providers(settings)
-    ingestion = IngestionService(settings, documents, vectors, blobs, embedder)
-    if isinstance(queue, InlineJobQueue):
-        queue.handler = ingestion.process
+    ingestion = IngestionService(settings, st.documents, st.vectors, st.blobs, embedder)
+    if isinstance(st.queue, InlineJobQueue):
+        st.queue.handler = ingestion.process
+    query = QueryService(
+        settings,
+        st.documents,
+        st.vectors,
+        embedder,
+        llm,
+        reranker=LLMReranker(rerank_llm) if settings.reranker is RerankerName.LLM else None,
+    )
+    counter = TokenCounter(settings.chat_tokenizer)
+    usage = UsageService(settings, st.usage)
+    conversations = ConversationService(st.conversations)
     return Container(
         settings=settings,
-        documents=documents,
-        vectors=vectors,
-        blobs=blobs,
-        queue=queue,
+        documents=st.documents,
+        vectors=st.vectors,
+        blobs=st.blobs,
+        queue=st.queue,
         embedder=embedder,
         llm=llm,
-        document_service=DocumentService(settings, documents, vectors, blobs, queue),
+        document_service=DocumentService(
+            settings, st.documents, st.vectors, st.blobs, st.queue, st.limiter
+        ),
         ingestion_service=ingestion,
-        query_service=QueryService(
+        query_service=query,
+        conversation_service=conversations,
+        usage_service=usage,
+        chat_service=ChatService(
             settings,
-            documents,
-            vectors,
-            embedder,
-            llm,
-            reranker=LLMReranker(rerank_llm) if settings.reranker is RerankerName.LLM else None,
+            query,
+            conversations,
+            st.conversations,
+            ContextManager(settings, llm, counter),
+            counter,
+            usage,
+            st.limiter,
         ),
     )
