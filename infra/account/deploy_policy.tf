@@ -174,8 +174,14 @@ data "aws_iam_policy_document" "deploy" {
   }
 
   statement {
+    sid       = "Dashboards"
+    actions   = ["cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards"]
+    resources = ["arn:aws:cloudwatch::${local.account_id}:dashboard/documind-*"]
+  }
+
+  statement {
     sid       = "Identity"
-    actions   = ["sts:GetCallerIdentity", "cloudwatch:DescribeAlarms"]
+    actions   = ["sts:GetCallerIdentity", "cloudwatch:DescribeAlarms", "cloudwatch:ListDashboards"]
     resources = ["*"]
   }
 }

@@ -55,6 +55,7 @@ module "stack" {
   allow_cli_password_login = true  # lets developers fetch a token from the terminal
   alarms_enabled           = false
   daily_token_quota        = 100000
+  global_daily_token_quota = 300000 # all dev users together: ~60 questions (~$0.04) a day
   log_level                = "DEBUG"
   alert_email              = var.alert_email
 }

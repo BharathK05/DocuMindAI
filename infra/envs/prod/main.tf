@@ -53,11 +53,17 @@ module "stack" {
   protect_data             = true
   allow_cli_password_login = false
   alarms_enabled           = true
+  metrics_enabled          = true    # 5 custom metrics; dev has none (10 are free per account)
+  global_daily_token_quota = 1000000 # all users together: ~200 questions (~$0.12) a day
   alert_email              = var.alert_email
 }
 
 output "api_url" {
   value = module.stack.api_url
+}
+
+output "dashboard_url" {
+  value = module.stack.dashboard_url
 }
 
 output "cognito_user_pool_id" {
