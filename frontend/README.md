@@ -32,3 +32,17 @@ cd backend && python -m documind.scripts.dev_token --user alice   # paste at /lo
 ```bash
 npm run lint && npm run typecheck && npm test && npm run build   # build output goes to out/
 ```
+
+## Hosting on Vercel (free `*.vercel.app` address)
+The same static build also runs on Vercel.
+- **Setup:** import the GitHub repo in Vercel, set **Root Directory** to `frontend`, and add these environment variables:
+
+  | Variable | Value (prod) |
+  |---|---|
+  | `DOCUMIND_API_URL` | `terraform -chdir=infra/envs/prod output -raw api_url` |
+  | `DOCUMIND_COGNITO_USER_POOL_ID` | `terraform -chdir=infra/envs/prod output -raw cognito_user_pool_id` |
+  | `DOCUMIND_COGNITO_CLIENT_ID` | `terraform -chdir=infra/envs/prod output -raw cognito_app_client_id` |
+
+- **Build:** `scripts/write-config.mjs` turns them into `config.json`.
+- **Headers:** `vercel.json` sends the same security headers as CloudFront.
+- **CORS:** the Vercel address must be in prod's `cors_origins` ([infra/envs/prod/main.tf](../infra/envs/prod/main.tf)). Preview deployments get other addresses, so they can't call the API.

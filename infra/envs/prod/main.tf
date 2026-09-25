@@ -45,7 +45,8 @@ module "stack" {
   env                   = "prod"
   function_package_path = "${var.package_dir}/function.zip"
   layer_package_path    = "${var.package_dir}/layer-arm64.zip"
-  cors_origins          = [module.web.url]
+  # The site on CloudFront, and the same build hosted on Vercel (free *.vercel.app address).
+  cors_origins = [module.web.url, "https://documind-bharath.vercel.app"]
 
   dynamodb_read_capacity  = 15
   dynamodb_write_capacity = 15

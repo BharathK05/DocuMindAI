@@ -6,14 +6,15 @@
     "sync:eval": "node scripts/sync-eval.mjs",
     "predev": "npm run sync:eval",
     "dev": "next dev",
-    "prebuild": "npm run sync:eval",
+    "prebuild": "npm run sync:eval && npm run write:config",
     "build": "next build",
     "start": "npx --yes serve@14 out -l 3000",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "format": "prettier --write src scripts",
-    "format:check": "prettier --check src scripts"
+    "format:check": "prettier --check src scripts",
+    "write:config": "node scripts/write-config.mjs"
   },
   "dependencies": {
     "aws-amplify": "^6.22.0",

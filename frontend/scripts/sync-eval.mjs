@@ -1,7 +1,7 @@
 // Copies the headline numbers (and one real answer) from the evaluation harness's results
 // file into src/data/eval.json, so the landing page's "proof" section can't drift from what
 // was measured. Runs before every dev/build; CI fails if the committed copy is stale.
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +9,12 @@ const RESULTS = "../backend/evals/results/structured-hybrid-prompt2-rerank.json"
 const SAMPLE_ID = "id-05"; // a real, correct, single-source answer for the demo card
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+if (!existsSync(resolve(root, RESULTS))) {
+  // Hosts that build only the frontend/ folder (e.g. Vercel) can't see backend/; the committed
+  // copy is used as is. CI builds with the full repo, so it still catches a stale copy.
+  console.log(`eval.json: ${RESULTS} not found, keeping the committed copy`);
+  process.exit(0);
+}
 const run = JSON.parse(readFileSync(resolve(root, RESULTS), "utf8"));
 const s = run.summary;
 const row = run.rows.find((r) => r.id === SAMPLE_ID);
