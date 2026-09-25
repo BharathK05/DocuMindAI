@@ -1,22 +1,17 @@
----
-title: DocuMind AI
-emoji: 🧠
-colorFrom: blue
-colorTo: indigo
-sdk: gradio
-app_file: app.py
-pinned: false
----
-
 # 🧠 DocuMind AI
 **Retrieval-augmented Q&A over your PDFs, with page-level citations.**
 
-[![Hugging Face Space](https://img.shields.io/badge/🤗%20Hugging%20Face-Live%20Demo-blue)](https://huggingface.co/spaces/Bhrthx/DocuMindAI)
+[![CI](https://github.com/BharathK05/DocuMindAI/actions/workflows/ci.yml/badge.svg)](https://github.com/BharathK05/DocuMindAI/actions/workflows/ci.yml)
+[![Deploy](https://github.com/BharathK05/DocuMindAI/actions/workflows/deploy.yml/badge.svg)](https://github.com/BharathK05/DocuMindAI/actions/workflows/deploy.yml)
 
-> **Work in progress:** this branch is being upgraded from a Gradio prototype to a serverless,
-> production-grade system (FastAPI + OpenAI + DynamoDB/S3/SQS on the AWS free tier). The plan is
-> in [docs/SPEC.md](docs/SPEC.md). Full documentation (architecture diagram, ADRs, evaluation
-> results) arrives in Phase 7.
+A serverless RAG system on the AWS free tier:
+- **Backend:** FastAPI on AWS Lambda.
+- **Models:** OpenAI for answers and embeddings.
+- **Storage:** DynamoDB, S3 and SQS.
+- **Logins:** Cognito.
+- **Infrastructure:** Terraform, deployed by GitHub Actions through OIDC.
+
+The web frontend (Next.js) is next on the roadmap. See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, and [infra/README.md](infra/README.md) for the deployment.
 
 ## How it works
 1. The client asks the API for a presigned URL and uploads the PDF **directly to S3**.
