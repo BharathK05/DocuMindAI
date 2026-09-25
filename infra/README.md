@@ -11,7 +11,7 @@ infra/
 │   ├── lambda/     function + least-privilege role + 7-day log group
 │   ├── cognito/    user pool + public app client
 │   ├── web/        web app: private S3 bucket + CloudFront (HTTPS, security headers, config.json)
-│   └── monitoring/ 3 CloudWatch alarms → SNS email (prod only)
+│   └── monitoring/ dashboard + 6 CloudWatch alarms → SNS email (prod only)
 └── envs/
     ├── dev/        small capacity, no deletion protection, CLI password login allowed
     └── prod/       deletion protection, alarms, deployed only after manual approval

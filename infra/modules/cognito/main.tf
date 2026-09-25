@@ -11,9 +11,28 @@ variable "allow_password_auth" {
   description = "Enable USER_PASSWORD_AUTH (for CLI testing in dev). Browsers use SRP."
 }
 
+variable "verification_email_subject" {
+  type        = string
+  default     = "Your DocuMind AI verification code"
+  description = "Subject of the email with the sign-up or password-reset code."
+}
+
+variable "verification_email_html" {
+  type        = string
+  default     = null
+  description = "HTML body; must contain {####} (the code). Defaults to templates/verification-email.html."
+}
+
 variable "deletion_protection" {
   type    = bool
   default = true
+}
+
+locals {
+  verification_email_html = coalesce(
+    var.verification_email_html,
+    file("${path.module}/templates/verification-email.html"),
+  )
 }
 
 resource "aws_cognito_user_pool" "this" {
@@ -35,6 +54,7 @@ resource "aws_cognito_user_pool" "this" {
     require_numbers                  = true
     require_symbols                  = false
     temporary_password_validity_days = 3
+    password_history_size            = 1 # AWS default on this tier: a reset can't reuse the current password
   }
 
   account_recovery_setting {
@@ -45,8 +65,24 @@ resource "aws_cognito_user_pool" "this" {
   }
 
   # Cognito's built-in sender is free (limited to ~50 emails/day), enough for this project.
+  # It always sends from no-reply@verificationemail.com; a custom sender needs Amazon SES.
   email_configuration {
     email_sending_account = "COGNITO_DEFAULT"
+  }
+
+  # One template serves sign-up codes, resent codes and password-reset codes, so the wording
+  # has to fit all three (separate wording per case needs a "custom message" Lambda trigger).
+  verification_message_template {
+    default_email_option = "CONFIRM_WITH_CODE"
+    email_subject        = var.verification_email_subject
+    email_message        = local.verification_email_html
+  }
+
+  lifecycle {
+    precondition {
+      condition     = strcontains(local.verification_email_html, "{####}")
+      error_message = "The verification email must contain the {####} placeholder for the code."
+    }
   }
 }
 

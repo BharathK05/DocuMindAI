@@ -237,8 +237,19 @@ function Chat({ api, user }: { api: Api; user: SignedInUser }) {
           case "done":
             patchBot((msg) => ({ ...msg, status: "done", notice: event.context.notice }));
             setAccount(event.account);
-            setContext(event.context);
             updateConversation(conversationId, { updated_at: new Date().toISOString() });
+            {
+              // The done event measures the prompt just sent (including retrieved passages);
+              // the bar shows how full the saved conversation is, the same figure a reload
+              // shows, so it doesn't jump between the two.
+              const id = conversationId;
+              void api
+                .usage(id)
+                .then((u) => {
+                  if (u.context) setContext(u.context);
+                })
+                .catch(() => setContext(event.context));
+            }
             break;
           case "title":
             updateConversation(conversationId, { title: event.title });

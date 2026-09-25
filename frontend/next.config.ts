@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // /chat → /chat/index.html, which S3 can serve without rewrite rules.
   trailingSlash: true,
   images: { unoptimized: true },
+  devIndicators: false, // the dev badge sits over the sidebar's account button
 };
 
 export default nextConfig;
