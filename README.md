@@ -18,7 +18,7 @@ A serverless RAG system on the AWS free tier:
   - The header shows context-window and daily-quota bars.
   - See [frontend/README.md](frontend/README.md).
 
-See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, and [infra/README.md](infra/README.md) for the deployment.
+See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, [docs/performance.md](docs/performance.md) for load tests and bottlenecks, and [infra/README.md](infra/README.md) for the deployment.
 
 ## How it works
 1. The client asks the API for a presigned URL and uploads the PDF **directly to S3**.
