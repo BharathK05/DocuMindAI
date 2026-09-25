@@ -1,0 +1,44 @@
+{
+  "name": "documind-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "sync:eval": "node scripts/sync-eval.mjs",
+    "predev": "npm run sync:eval",
+    "dev": "next dev",
+    "prebuild": "npm run sync:eval",
+    "build": "next build",
+    "start": "npx --yes serve@14 out -l 3000",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier --write src scripts",
+    "format:check": "prettier --check src scripts"
+  },
+  "dependencies": {
+    "aws-amplify": "^6.22.0",
+    "lucide-react": "^1.48.0",
+    "motion": "^13.4.4",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "prettier": "^3.9.9",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
