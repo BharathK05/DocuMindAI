@@ -7,7 +7,12 @@ import pytest
 
 from documind.core.config import Settings
 from documind.core.container import Container
-from documind.core.errors import ProviderError, QuotaExceededError, RateLimitedError
+from documind.core.errors import (
+    ProviderError,
+    QuotaExceededError,
+    RateLimitedError,
+    ServiceQuotaExceededError,
+)
 from documind.domain import (
     Chunk,
     Conversation,
@@ -78,6 +83,30 @@ class TestDailyQuota:
         clock.now += 12 * 3600  # next UTC day
         await service.ensure_within_quota("alice")
         assert (await service.account("alice")).tokens_used_today == 0
+
+    async def test_service_wide_cap_stops_everyone(self, settings: Settings) -> None:
+        clock = Clock(NOON)
+        service = UsageService(
+            settings.model_copy(update={"global_daily_token_quota": 1_000}),
+            InMemoryUsageRepository(),
+            clock,
+        )
+        await service.record("alice", TokenUsage(500, 100))
+        await service.ensure_within_quota("bob")  # 600 < 1,000
+        await service.record("bob", TokenUsage(400, 50))  # 1,050 in total
+        for user in ("alice", "bob", "carol"):  # carol hasn't used anything
+            with pytest.raises(ServiceQuotaExceededError) as exc:
+                await service.ensure_within_quota(user)
+            assert exc.value.code == "service_quota_exceeded"
+            assert exc.value.retry_after == 12 * 3600
+        clock.now += 12 * 3600
+        await service.ensure_within_quota("carol")
+
+    async def test_no_service_cap_by_default(self, settings: Settings) -> None:
+        repo = InMemoryUsageRepository()
+        service = UsageService(settings, repo, Clock(NOON))
+        await service.record("alice", TokenUsage(10**9, 0))
+        assert (await repo.get_service("2026-09-25")).total_tokens == 0  # not even counted
 
 
 def test_token_counter_counts_text_and_message_framing() -> None:

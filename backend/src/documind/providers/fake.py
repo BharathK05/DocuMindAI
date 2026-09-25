@@ -4,6 +4,7 @@ The fake embedder is a hashed bag-of-words, so retrieval still behaves sensibly 
 words with the question score higher), which keeps end-to-end tests meaningful.
 """
 
+import asyncio
 import hashlib
 import re
 from collections.abc import AsyncIterator, Sequence
@@ -18,14 +19,17 @@ _WORD = re.compile(r"[a-z0-9]+")
 
 
 class FakeEmbeddingProvider:
-    def __init__(self, dimensions: int = 256) -> None:
+    def __init__(self, dimensions: int = 256, *, delay_seconds: float = 0.0) -> None:
         self._dimensions = dimensions
+        self._delay = delay_seconds  # simulated network round trip (load tests)
 
     @property
     def dimensions(self) -> int:
         return self._dimensions
 
     async def embed(self, texts: Sequence[str]) -> NDArray[np.float32]:
+        if self._delay:
+            await asyncio.sleep(self._delay)
         matrix = np.zeros((len(texts), self._dimensions), dtype=np.float32)
         for row, text in enumerate(texts):
             for word in _WORD.findall(text.lower()):
@@ -41,6 +45,9 @@ def _approx_tokens(text: str) -> int:
 class FakeLLMProvider:
     """Answers by quoting the start of the first source in the prompt, citing it as [1]."""
 
+    def __init__(self, *, delay_seconds: float = 0.0) -> None:
+        self._delay = delay_seconds  # simulated time to first token (load tests)
+
     def _answer(self, messages: Sequence[Message]) -> str:
         prompt = messages[-1].content
         if messages[0].content.startswith("Write a title"):  # services.titles.TITLE_PROMPT
@@ -55,12 +62,16 @@ class FakeLLMProvider:
         return TokenUsage(sum(_approx_tokens(m.content) for m in messages), _approx_tokens(answer))
 
     async def complete(self, messages: Sequence[Message], *, max_output_tokens: int) -> Completion:
+        if self._delay:
+            await asyncio.sleep(self._delay)
         answer = self._answer(messages)
         return Completion(answer, self._usage(messages, answer))
 
     async def stream(
         self, messages: Sequence[Message], *, max_output_tokens: int
     ) -> AsyncIterator[StreamEvent]:
+        if self._delay:
+            await asyncio.sleep(self._delay)
         answer = self._answer(messages)
         for word in re.findall(r"\S+\s*", answer):
             yield TextDelta(word)

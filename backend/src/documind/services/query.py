@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 import tiktoken
 
+from documind.core import tracing
 from documind.core.config import Settings
 from documind.core.errors import InvalidInputError, NotFoundError
 from documind.domain import Citation, DocumentStatus, Message, ScoredChunk, TokenUsage
@@ -180,18 +181,20 @@ class QueryService:
         # With a reranker, fetch a wider pool first; the reranker decides the final order.
         fetch = max(top_k, s.rerank_candidates) if self._reranker else top_k
         query_vector = (await self._embedder.embed([question]))[0]
-        chunks = await self._vectors.search(
-            user_id,
-            query_vector,
-            query_text=question,
-            top_k=fetch,
-            document_ids=ready.keys(),
-            mode=s.retrieval_mode,
-            candidates=s.retrieval_candidates,
-        )
+        with tracing.span("vector search", documents=len(ready), mode=s.retrieval_mode.value):
+            chunks = await self._vectors.search(
+                user_id,
+                query_vector,
+                query_text=question,
+                top_k=fetch,
+                document_ids=ready.keys(),
+                mode=s.retrieval_mode,
+                candidates=s.retrieval_candidates,
+            )
         usage = TokenUsage()
         if self._reranker and len(chunks) > 1:
-            reranked = await self._reranker.rerank(question, chunks)
+            with tracing.span("rerank", candidates=len(chunks)):
+                reranked = await self._reranker.rerank(question, chunks)
             chunks, usage = reranked.chunks, reranked.usage
         return Retrieval(chunks[:top_k], ready, usage)
 

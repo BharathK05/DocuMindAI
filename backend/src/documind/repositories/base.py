@@ -106,6 +106,11 @@ class UsageRepository(Protocol):
 
     async def get(self, user_id: str, day: str) -> DailyUsage: ...
 
+    # The service-wide counter (all users together) lives under its own key, never a user's.
+    async def add_service(self, day: str, usage: TokenUsage, *, expires_at: int) -> None: ...
+
+    async def get_service(self, day: str) -> DailyUsage: ...
+
 
 @dataclass(frozen=True, slots=True)
 class NewMessage:

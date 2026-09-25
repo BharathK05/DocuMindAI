@@ -77,3 +77,9 @@ class QuotaExceededError(RateLimitedError):
     """The user's daily token quota is used up until ``retry_after`` seconds from now."""
 
     code = "quota_exceeded"
+
+
+class ServiceQuotaExceededError(QuotaExceededError):
+    """All users together have used today's token budget (the service-wide cap)."""
+
+    code = "service_quota_exceeded"

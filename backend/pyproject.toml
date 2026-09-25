@@ -10,6 +10,12 @@ dependencies = [
     "fastapi~=0.141.1",
     "numpy~=2.5",
     "openai~=3.19",
+    # Tracing: OpenTelemetry API/SDK, exported to AWS X-Ray (see documind.core.tracing).
+    "opentelemetry-api~=1.45",
+    "opentelemetry-sdk~=1.45",
+    "opentelemetry-sdk-extension-aws~=2.1",
+    "opentelemetry-propagator-aws-xray~=1.0",
+    "opentelemetry-instrumentation-botocore==0.66b0",  # pre-1.0: pinned exactly
     "pydantic~=2.13",
     "pydantic-settings~=2.15",
     "pypdf~=6.19",
@@ -18,6 +24,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+loadtest = ["locust~=2.46"]
 server = ["uvicorn[standard]~=0.53.0"]
 demo = ["gradio~=6.28"]
 dev = [

@@ -1,6 +1,7 @@
 """FastAPI application factory."""
 
 import logging
+import re
 import time
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -10,9 +11,11 @@ from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from opentelemetry.trace import SpanKind
 
 from documind.api.routes import conversations, documents, query, usage
 from documind.api.schemas import ErrorBody, ErrorResponse
+from documind.core import metrics, tracing
 from documind.core.auth import Authenticator, build_authenticator
 from documind.core.config import Settings, get_settings
 from documind.core.container import Container, build_container
@@ -20,6 +23,7 @@ from documind.core.errors import DocumindError
 from documind.core.logging import configure_logging, request_id_var
 
 logger = logging.getLogger(__name__)
+_ID = re.compile(r"[0-9a-f]{32}")
 
 
 def _error(
@@ -41,6 +45,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        tracing.setup("documind-api", enabled=settings.tracing_enabled, region=settings.aws_region)
         app.state.container = container or build_container(settings)
         # Fails fast at startup if auth is misconfigured, rather than on the first request.
         app.state.authenticator = authenticator or build_authenticator(settings)
@@ -50,7 +55,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST", "DELETE"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
         expose_headers=["X-Request-ID", "Retry-After"],
     )
@@ -62,21 +67,47 @@ def create_app(
         request_id = uuid.uuid4().hex
         token = request_id_var.set(request_id)
         started = time.perf_counter()
+        route = _ID.sub("{id}", request.url.path)  # one trace name per route, not per id
+        server_span = tracing.start(
+            f"{request.method} {route}",
+            kind=SpanKind.SERVER,
+            parent=tracing.context_from_header(request.headers.get(tracing.TRACE_HEADER)),
+            request_id=request_id,
+        )
         try:
-            response = await call_next(request)
-            response.headers["X-Request-ID"] = request_id
-            logger.info(
-                "request",
-                extra={
-                    "method": request.method,
-                    "path": request.url.path,
-                    "status": response.status_code,
-                    "latency_ms": round((time.perf_counter() - started) * 1000),
-                },
-            )
-            return response
+            with metrics.track_request(), tracing.use(server_span):
+                response = await call_next(request)
+        except Exception as exc:
+            tracing.mark_error(server_span, exc)
+            server_span.end()
+            raise
         finally:
             request_id_var.reset(token)
+        response.headers["X-Request-ID"] = request_id
+        server_span.set_attribute("http_status", response.status_code)
+        logger.info(
+            "request",
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "latency_ms": round((time.perf_counter() - started) * 1000),
+            },
+        )
+        # A streamed answer is still being written after call_next returns, so the request's
+        # span ends when the body has been sent, not when the headers were.
+        body = response.body_iterator  # type: ignore[attr-defined]
+
+        async def traced_body() -> AsyncIterator[bytes]:
+            try:
+                async for chunk in body:
+                    yield chunk
+            finally:
+                server_span.end()
+
+        response.body_iterator = traced_body()  # type: ignore[attr-defined]
+        return response
 
     @app.exception_handler(DocumindError)
     async def domain_error(_: Request, exc: DocumindError) -> JSONResponse:

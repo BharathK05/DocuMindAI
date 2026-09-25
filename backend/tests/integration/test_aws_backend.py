@@ -187,6 +187,11 @@ async def test_dynamo_rate_limiter_usage_and_ttl(aws_settings: Settings) -> None
     assert (day.input_tokens, day.output_tokens, day.requests) == (150, 15, 2)
     assert (await usage.get("u2", "2026-09-25")).total_tokens == 0
 
+    # The service-wide counter is separate from every user's.
+    await usage.add_service("2026-09-25", TokenUsage(7, 3), expires_at=2_000_000_000)
+    assert (await usage.get_service("2026-09-25")).total_tokens == 10
+    assert (await usage.get("u1", "2026-09-25")).total_tokens == 165
+
 
 async def test_dynamo_conversations(aws_settings: Settings) -> None:
     from documind.domain import Citation, Conversation
@@ -249,3 +254,32 @@ async def test_dynamo_document_expiry_is_set_then_cleared(
     )
     completed = await aws.document_service.complete_upload("u1", ticket.document.document_id)
     assert completed.expires_at is None
+
+
+async def test_chunk_cache_skips_repeat_reads(aws_settings: Settings) -> None:
+    from documind.core import metrics
+    from documind.repositories.dynamodb import ChunkCache, DynamoTable, DynamoVectorStore
+
+    table = DynamoTable(
+        boto3.client("dynamodb", region_name=aws_settings.aws_region), aws_settings.dynamodb_table
+    )
+    store = DynamoVectorStore(table, ChunkCache(max_chunks=100))
+    vectors = l2_normalize(np.random.default_rng(2).normal(size=(5, 8)).astype(np.float32))
+    await store.upsert(
+        "u1",
+        [EmbeddedChunk(Chunk("docA", i, 1, f"text {i}"), vectors[i]) for i in range(5)],
+    )
+
+    async def search() -> tuple[int, metrics.RequestStats]:
+        with metrics.track_request() as stats:
+            hits = await store.search(
+                "u1", vectors[0], query_text="", top_k=5, document_ids={"docA"}
+            )
+        return len(hits), stats
+
+    count, first = await search()
+    assert (count, first.cache_misses, first.dynamo_calls) == (5, 1, 1)
+    count, second = await search()
+    assert (count, second.cache_hits, second.dynamo_calls) == (5, 1, 0)  # no DynamoDB read
+    other_user = await store.search("u2", vectors[0], query_text="", top_k=5, document_ids={"docA"})
+    assert other_user == []  # cache keys include the user

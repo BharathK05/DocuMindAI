@@ -28,7 +28,12 @@ from documind.repositories.conversations import (
     DynamoConversationRepository,
     InMemoryConversationRepository,
 )
-from documind.repositories.dynamodb import DynamoDocumentRepository, DynamoTable, DynamoVectorStore
+from documind.repositories.dynamodb import (
+    ChunkCache,
+    DynamoDocumentRepository,
+    DynamoTable,
+    DynamoVectorStore,
+)
 from documind.repositories.memory import (
     InlineJobQueue,
     InMemoryBlobStore,
@@ -103,7 +108,12 @@ def _openai_api_key(settings: Settings) -> str:
 def _providers(settings: Settings) -> tuple[EmbeddingProvider, LLMProvider, LLMProvider]:
     """(embedder, answering LLM, reranking LLM)."""
     if settings.llm_provider is LLMProviderName.FAKE:
-        return FakeEmbeddingProvider(), FakeLLMProvider(), FakeLLMProvider()
+        delay = settings.fake_latency_ms / 1000
+        return (
+            FakeEmbeddingProvider(settings.fake_embedding_dimensions, delay_seconds=delay),
+            FakeLLMProvider(delay_seconds=delay),
+            FakeLLMProvider(delay_seconds=delay),
+        )
     client = AsyncOpenAI(
         api_key=_openai_api_key(settings),
         timeout=settings.llm_timeout_seconds,
@@ -161,7 +171,7 @@ def _storage(settings: Settings) -> _Storage:
     queue_url = sqs.get_queue_url(QueueName=settings.sqs_queue_name)["QueueUrl"]
     return _Storage(
         DynamoDocumentRepository(table),
-        DynamoVectorStore(table),
+        DynamoVectorStore(table, ChunkCache(settings.vector_cache_max_chunks)),
         S3BlobStore(s3, s3_presign, settings.s3_bucket),
         SqsJobQueue(sqs, queue_url),
         DynamoConversationRepository(table),
