@@ -45,7 +45,7 @@ jobs:
             backend/dist/layer-arm64.zip
           retention-days: 7
       # One web build for every environment: each one gets its own config.json from Terraform.
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
