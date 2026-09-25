@@ -61,6 +61,13 @@ class Chunk:
     index: int
     page: int
     text: str
+    # "Document title > section heading", prepended when embedding and keyword-matching so a
+    # chunk carries its place in the document (empty for the baseline chunker).
+    context: str = ""
+
+    @property
+    def search_text(self) -> str:
+        return f"{self.context}\n\n{self.text}" if self.context else self.text
 
 
 @dataclass(frozen=True, slots=True)

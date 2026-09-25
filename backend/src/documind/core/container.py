@@ -11,7 +11,7 @@ import boto3
 from botocore.config import Config
 from openai import AsyncOpenAI
 
-from documind.core.config import Backend, LLMProviderName, Settings
+from documind.core.config import Backend, LLMProviderName, RerankerName, Settings
 from documind.providers.base import EmbeddingProvider, LLMProvider
 from documind.providers.fake import FakeEmbeddingProvider, FakeLLMProvider
 from documind.providers.openai_provider import OpenAIChatProvider, OpenAIEmbeddingProvider
@@ -28,6 +28,7 @@ from documind.repositories.sqs import SqsJobQueue
 from documind.services.documents import DocumentService
 from documind.services.ingestion import IngestionService
 from documind.services.query import QueryService
+from documind.services.rerank import LLMReranker
 
 _RETRIES: Any = {"max_attempts": 5, "mode": "adaptive"}
 _BOTO_CONFIG = Config(connect_timeout=5, read_timeout=10, retries=_RETRIES)
@@ -73,9 +74,10 @@ def _openai_api_key(settings: Settings) -> str:
     )
 
 
-def _providers(settings: Settings) -> tuple[EmbeddingProvider, LLMProvider]:
+def _providers(settings: Settings) -> tuple[EmbeddingProvider, LLMProvider, LLMProvider]:
+    """(embedder, answering LLM, reranking LLM)."""
     if settings.llm_provider is LLMProviderName.FAKE:
-        return FakeEmbeddingProvider(), FakeLLMProvider()
+        return FakeEmbeddingProvider(), FakeLLMProvider(), FakeLLMProvider()
     client = AsyncOpenAI(
         api_key=_openai_api_key(settings),
         timeout=settings.llm_timeout_seconds,
@@ -94,7 +96,10 @@ def _providers(settings: Settings) -> tuple[EmbeddingProvider, LLMProvider]:
     llm = OpenAIChatProvider(
         client, model=settings.chat_model, reasoning_effort=settings.chat_reasoning_effort
     )
-    return embedder, llm
+    rerank_llm = OpenAIChatProvider(
+        client, model=settings.chat_model, reasoning_effort=settings.rerank_reasoning_effort
+    )
+    return embedder, llm, rerank_llm
 
 
 def _storage(settings: Settings) -> tuple[DocumentRepository, VectorStore, BlobStore, JobQueue]:
@@ -124,7 +129,7 @@ def _storage(settings: Settings) -> tuple[DocumentRepository, VectorStore, BlobS
 
 def build_container(settings: Settings) -> Container:
     documents, vectors, blobs, queue = _storage(settings)
-    embedder, llm = _providers(settings)
+    embedder, llm, rerank_llm = _providers(settings)
     ingestion = IngestionService(settings, documents, vectors, blobs, embedder)
     if isinstance(queue, InlineJobQueue):
         queue.handler = ingestion.process
@@ -138,5 +143,12 @@ def build_container(settings: Settings) -> Container:
         llm=llm,
         document_service=DocumentService(settings, documents, vectors, blobs, queue),
         ingestion_service=ingestion,
-        query_service=QueryService(settings, documents, vectors, embedder, llm),
+        query_service=QueryService(
+            settings,
+            documents,
+            vectors,
+            embedder,
+            llm,
+            reranker=LLMReranker(rerank_llm) if settings.reranker is RerankerName.LLM else None,
+        ),
     )

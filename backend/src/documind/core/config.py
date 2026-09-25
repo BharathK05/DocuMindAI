@@ -17,6 +17,21 @@ class LLMProviderName(StrEnum):
     FAKE = "fake"  # deterministic offline provider: tests, load tests, no-key local runs
 
 
+class ChunkingStrategy(StrEnum):
+    RECURSIVE = "recursive"  # fixed-size character chunks (original pipeline)
+    STRUCTURED = "structured"  # boilerplate removal + token chunks + section context
+
+
+class RetrievalMode(StrEnum):
+    DENSE = "dense"  # embeddings only
+    HYBRID = "hybrid"  # embeddings + BM25 keyword search, fused with reciprocal rank fusion
+
+
+class RerankerName(StrEnum):
+    NONE = "none"
+    LLM = "llm"  # listwise reranking by the chat model
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DOCUMIND_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -60,6 +75,10 @@ class Settings(BaseSettings):
     embedding_batch_max_items: int = 256
     embedding_batch_max_tokens: int = 100_000  # API hard limit is 300k tokens per request
     embedding_concurrency: int = 4
+    # USD per 1M tokens, for cost logging and quotas (standard tier, verified 2026-09-24).
+    chat_input_usd_per_mtok: float = 0.10
+    chat_output_usd_per_mtok: float = 0.50
+    embedding_usd_per_mtok: float = 0.02
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 3  # SDK retries 408/409/429/5xx with exponential backoff + jitter
 
@@ -67,9 +86,23 @@ class Settings(BaseSettings):
     upload_max_bytes: int = 20 * 1024 * 1024
     upload_max_pages: int = 300
     presign_expiry_seconds: int = 300
-    chunk_size: int = 500
+    # Each retrieval improvement is a switch so the eval harness can measure it in isolation
+    # (see backend/evals). Defaults are the best configuration found there.
+    chunking_strategy: ChunkingStrategy = ChunkingStrategy.STRUCTURED
+    chunk_size: int = 500  # characters, "recursive" strategy
     chunk_overlap: int = 75
+    chunk_tokens: int = 350  # tokens, "structured" strategy
+    chunk_overlap_tokens: int = 50
+    retrieval_mode: RetrievalMode = RetrievalMode.HYBRID
+    retrieval_candidates: int = 30  # per-retriever pool before fusion / reranking
+    # +18 pts Recall@1, +5 pts correctness for ~+1.4 s p50 and ~3x (sub-cent) cost per query.
+    reranker: RerankerName = RerankerName.LLM
+    rerank_candidates: int = 20
+    # Ranking passages needs no deliberation; "none" keeps the extra call fast.
+    rerank_reasoning_effort: str | None = "none"
     retrieval_top_k: int = 5
+    context_token_budget: int = 3_000  # max tokens of retrieved text sent to the model
+    prompt_version: int = 2
     max_history_messages: int = 10
     max_question_chars: int = 2_000
 

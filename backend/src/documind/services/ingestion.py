@@ -10,11 +10,19 @@ import logging
 import time
 import uuid
 
-from documind.core.config import Settings
+from documind.core.config import ChunkingStrategy, Settings
 from documind.core.errors import ConflictError, InvalidDocumentError, NotFoundError
-from documind.domain import Document, DocumentPatch, DocumentStatus, EmbeddedChunk, IngestJob
+from documind.domain import (
+    Chunk,
+    Document,
+    DocumentPatch,
+    DocumentStatus,
+    EmbeddedChunk,
+    IngestJob,
+)
 from documind.ingestion.chunking import chunk_pages
-from documind.ingestion.pdf import parse_pdf
+from documind.ingestion.pdf import ParsedPdf, parse_pdf
+from documind.ingestion.structure import structured_chunks
 from documind.providers.base import EmbeddingProvider
 from documind.repositories.base import BlobStore, DocumentRepository, VectorStore
 from documind.services.documents import validate_upload
@@ -92,14 +100,12 @@ class IngestionService:
         if len(data) > self._settings.upload_max_bytes:
             raise InvalidDocumentError("The file exceeds the upload size limit.")
         # pypdf is CPU-bound; a worker thread keeps the event loop responsive.
-        pages = await asyncio.to_thread(parse_pdf, data, max_pages=self._settings.upload_max_pages)
-        chunks = chunk_pages(
-            pages,
-            document_id=document.document_id,
-            chunk_size=self._settings.chunk_size,
-            overlap=self._settings.chunk_overlap,
-        )
-        vectors = await self._embedder.embed([c.text for c in chunks])
+        parsed = await asyncio.to_thread(parse_pdf, data, max_pages=self._settings.upload_max_pages)
+        pages = parsed.pages
+        chunks = await asyncio.to_thread(self._chunk, document, parsed)
+        if not chunks:
+            raise InvalidDocumentError("No usable text was found in the PDF.")
+        vectors = await self._embedder.embed([c.search_text for c in chunks])
         await self._vectors.upsert(
             document.user_id,
             [EmbeddedChunk(c, v) for c, v in zip(chunks, vectors, strict=True)],
@@ -114,6 +120,24 @@ class IngestionService:
             },
         )
         return len(pages), len(chunks)
+
+    def _chunk(self, document: Document, parsed: ParsedPdf) -> list[Chunk]:
+        s = self._settings
+        if s.chunking_strategy is ChunkingStrategy.STRUCTURED:
+            return structured_chunks(
+                parsed.pages,
+                document_id=document.document_id,
+                title=parsed.title or document.filename.rsplit(".", 1)[0],
+                chunk_tokens=s.chunk_tokens,
+                overlap_tokens=s.chunk_overlap_tokens,
+                tokenizer=s.embedding_tokenizer,
+            )
+        return chunk_pages(
+            parsed.pages,
+            document_id=document.document_id,
+            chunk_size=s.chunk_size,
+            overlap=s.chunk_overlap,
+        )
 
     async def _finish(self, document: Document, page_count: int, chunk_count: int) -> Document:
         try:

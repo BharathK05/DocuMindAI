@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
+from documind.core.config import RetrievalMode
 from documind.core.errors import ConflictError, NotFoundError
 from documind.domain import (
     Document,
@@ -18,7 +19,7 @@ from documind.domain import (
     utcnow,
 )
 from documind.repositories.base import PresignedUpload
-from documind.repositories.vector_math import top_k_cosine
+from documind.repositories.search import rank
 
 
 class InMemoryDocumentRepository:
@@ -78,19 +79,25 @@ class InMemoryVectorStore:
         user_id: str,
         query: NDArray[np.float32],
         *,
+        query_text: str,
         top_k: int,
         document_ids: Collection[str],
+        mode: RetrievalMode = RetrievalMode.DENSE,
+        candidates: int = 30,
     ) -> list[ScoredChunk]:
-        candidates = [
-            c for c in self._chunks.get(user_id, []) if c.chunk.document_id in document_ids
-        ]
-        if not candidates:
+        scoped = [c for c in self._chunks.get(user_id, []) if c.chunk.document_id in document_ids]
+        if not scoped:
             return []
-        matrix = np.vstack([c.vector for c in candidates])
-        return [
-            ScoredChunk(candidates[i].chunk, score)
-            for i, score in top_k_cosine(matrix, query, top_k)
-        ]
+        ranked = rank(
+            [c.chunk.search_text for c in scoped],
+            np.vstack([c.vector for c in scoped]),
+            query,
+            query_text,
+            top_k=top_k,
+            mode=mode,
+            candidates=candidates,
+        )
+        return [ScoredChunk(scoped[i].chunk, score) for i, score in ranked]
 
     async def delete_document(self, user_id: str, document_id: str) -> None:
         self._chunks[user_id] = [
@@ -138,5 +145,8 @@ class InlineJobQueue:
 
     async def drain(self) -> None:
         """Wait for all queued jobs (used by tests)."""
-        while self._tasks:
-            await asyncio.gather(*self._tasks, return_exceptions=True)
+        # Filter on done() rather than looping on the set itself: a finished task stays in the
+        # set until its done-callback runs, and awaiting an already-finished gather never
+        # yields to the event loop, so that callback would never get a chance to run.
+        while pending := [t for t in self._tasks if not t.done()]:
+            await asyncio.gather(*pending, return_exceptions=True)

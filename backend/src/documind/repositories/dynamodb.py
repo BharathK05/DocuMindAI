@@ -20,6 +20,7 @@ from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from botocore.exceptions import ClientError
 from numpy.typing import NDArray
 
+from documind.core.config import RetrievalMode
 from documind.core.errors import ConflictError, NotFoundError
 from documind.domain import (
     Chunk,
@@ -30,7 +31,8 @@ from documind.domain import (
     ScoredChunk,
     utcnow,
 )
-from documind.repositories.vector_math import decode_vector, encode_vector, top_k_cosine
+from documind.repositories.search import rank
+from documind.repositories.vector_math import decode_vector, encode_vector
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb import DynamoDBClient
@@ -221,6 +223,7 @@ class DynamoVectorStore:
                         "page": {"N": str(c.chunk.page)},
                         "text": {"S": c.chunk.text},
                         "vec": {"B": encode_vector(c.vector)},
+                        **({"ctx": {"S": c.chunk.context}} if c.chunk.context else {}),
                     }
                 }
             }
@@ -233,8 +236,11 @@ class DynamoVectorStore:
         user_id: str,
         query: NDArray[np.float32],
         *,
+        query_text: str,
         top_k: int,
         document_ids: Collection[str],
+        mode: RetrievalMode = RetrievalMode.DENSE,
+        candidates: int = 30,
     ) -> list[ScoredChunk]:
         per_doc = await asyncio.gather(
             *(
@@ -251,13 +257,20 @@ class DynamoVectorStore:
                 index=int(i["idx"]["N"]),
                 page=int(i["page"]["N"]),
                 text=i["text"]["S"],
+                context=i.get("ctx", {}).get("S", ""),
             )
             for i in items
         ]
-        matrix = np.vstack([decode_vector(i["vec"]["B"]) for i in items])
-        return [
-            ScoredChunk(chunks[idx], score) for idx, score in top_k_cosine(matrix, query, top_k)
-        ]
+        ranked = rank(
+            [c.search_text for c in chunks],
+            np.vstack([decode_vector(i["vec"]["B"]) for i in items]),
+            query,
+            query_text,
+            top_k=top_k,
+            mode=mode,
+            candidates=candidates,
+        )
+        return [ScoredChunk(chunks[idx], score) for idx, score in ranked]
 
     async def delete_document(self, user_id: str, document_id: str) -> None:
         def _delete() -> None:

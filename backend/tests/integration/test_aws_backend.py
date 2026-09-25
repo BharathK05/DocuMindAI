@@ -92,17 +92,26 @@ async def test_vector_store_search_is_scoped_by_user_and_document(aws: Container
     ]
     await aws.vectors.upsert("u1", chunks)
 
-    hits = await aws.vectors.search("u1", vectors[3], top_k=3, document_ids={"docA", "docB"})
+    hits = await aws.vectors.search(
+        "u1", vectors[3], query_text="", top_k=3, document_ids={"docA", "docB"}
+    )
     assert hits[0].chunk.index == 3
     assert hits[0].score == pytest.approx(1.0, abs=1e-2)  # float16 storage
 
-    only_b = await aws.vectors.search("u1", vectors[3], top_k=5, document_ids={"docB"})
+    only_b = await aws.vectors.search(
+        "u1", vectors[3], query_text="", top_k=5, document_ids={"docB"}
+    )
     assert all(h.chunk.document_id == "docB" for h in only_b)
 
-    assert await aws.vectors.search("u2", vectors[3], top_k=3, document_ids={"docA"}) == []
+    assert (
+        await aws.vectors.search("u2", vectors[3], query_text="", top_k=3, document_ids={"docA"})
+        == []
+    )
 
     await aws.vectors.delete_document("u1", "docA")
-    remaining = await aws.vectors.search("u1", vectors[3], top_k=100, document_ids={"docA", "docB"})
+    remaining = await aws.vectors.search(
+        "u1", vectors[3], query_text="", top_k=100, document_ids={"docA", "docB"}
+    )
     assert len(remaining) == 30
 
 

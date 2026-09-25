@@ -3,6 +3,7 @@
 import io
 import logging
 import re
+from dataclasses import dataclass
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
@@ -21,7 +22,21 @@ def _normalize(text: str) -> str:
     return _BLANK_LINES.sub("\n\n", text).strip()
 
 
-def parse_pdf(data: bytes, *, max_pages: int) -> list[Page]:
+@dataclass(frozen=True, slots=True)
+class ParsedPdf:
+    title: str | None
+    pages: list[Page]
+
+
+def _title(reader: PdfReader) -> str | None:
+    try:
+        title = reader.metadata.title if reader.metadata else None
+    except PdfReadError:
+        return None
+    return title.strip()[:200] if isinstance(title, str) and title.strip() else None
+
+
+def parse_pdf(data: bytes, *, max_pages: int) -> ParsedPdf:
     # The PDF spec allows junk before the header, but it must appear within the first 1 KB.
     if b"%PDF-" not in data[:1024]:
         raise InvalidDocumentError("The file is not a PDF.")
@@ -35,6 +50,7 @@ def parse_pdf(data: bytes, *, max_pages: int) -> list[Page]:
             Page(number=i, text=_normalize(page.extract_text() or ""))
             for i, page in enumerate(reader.pages, start=1)
         ]
+        title = _title(reader)
     except PdfReadError as exc:
         logger.info("pdf parse failed", extra={"error": str(exc)})
         raise InvalidDocumentError("The PDF is corrupt or unreadable.") from exc
@@ -42,4 +58,4 @@ def parse_pdf(data: bytes, *, max_pages: int) -> list[Page]:
         raise InvalidDocumentError(
             "No text could be extracted. Scanned (image-only) PDFs are not supported yet."
         )
-    return pages
+    return ParsedPdf(title, pages)

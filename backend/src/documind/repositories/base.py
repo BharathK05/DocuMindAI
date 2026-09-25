@@ -8,6 +8,7 @@ from typing import Protocol
 import numpy as np
 from numpy.typing import NDArray
 
+from documind.core.config import RetrievalMode
 from documind.domain import (
     Document,
     DocumentPatch,
@@ -50,9 +51,14 @@ class VectorStore(Protocol):
         user_id: str,
         query: NDArray[np.float32],
         *,
+        query_text: str,
         top_k: int,
         document_ids: Collection[str],
-    ) -> list[ScoredChunk]: ...
+        mode: RetrievalMode = RetrievalMode.DENSE,
+        candidates: int = 30,
+    ) -> list[ScoredChunk]:
+        """Best-first chunks from ``document_ids`` (``query_text`` feeds keyword search)."""
+        ...
 
     async def delete_document(self, user_id: str, document_id: str) -> None: ...
 

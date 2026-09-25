@@ -3,7 +3,9 @@
 import logging
 import time
 from collections.abc import AsyncIterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+import tiktoken
 
 from documind.core.config import Settings
 from documind.core.errors import InvalidInputError, NotFoundError
@@ -11,6 +13,7 @@ from documind.domain import Citation, DocumentStatus, Message, ScoredChunk, Toke
 from documind.providers.base import EmbeddingProvider, LLMProvider, StreamEnd, TextDelta
 from documind.repositories.base import DocumentRepository, VectorStore
 from documind.services.prompts import build_messages
+from documind.services.rerank import Reranker
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +42,10 @@ QueryEvent = SourcesEvent | TextDelta | DoneEvent
 
 
 @dataclass(frozen=True, slots=True)
-class _Retrieval:
+class Retrieval:
     chunks: list[ScoredChunk]
     filenames: dict[str, str]
+    usage: TokenUsage = field(default_factory=TokenUsage)  # spent retrieving (reranking)
 
     def citations(self) -> list[Citation]:
         return [
@@ -65,12 +69,15 @@ class QueryService:
         vectors: VectorStore,
         embedder: EmbeddingProvider,
         llm: LLMProvider,
+        reranker: Reranker | None = None,
     ) -> None:
         self._settings = settings
         self._documents = documents
         self._vectors = vectors
         self._embedder = embedder
         self._llm = llm
+        self._reranker = reranker
+        self._encoding = tiktoken.get_encoding(settings.chat_tokenizer)
 
     async def answer(
         self,
@@ -79,17 +86,25 @@ class QueryService:
         history: Sequence[Message] = (),
         document_ids: Sequence[str] | None = None,
     ) -> Answer:
+        retrieval = await self.retrieve(user_id, question, document_ids)
+        return await self.generate(question, history, retrieval)
+
+    async def generate(
+        self, question: str, history: Sequence[Message], retrieval: "Retrieval"
+    ) -> Answer:
+        """Answer from an existing retrieval (lets the eval harness score both stages)."""
         started = time.perf_counter()
         question = self._validate(question)
-        retrieval = await self._retrieve(user_id, question, document_ids)
         if not retrieval.chunks:
-            return Answer(NO_DOCUMENTS_ANSWER, [], TokenUsage())
+            return Answer(NO_DOCUMENTS_ANSWER, [], retrieval.usage)
+        retrieval = self._fit_budget(retrieval)
         completion = await self._llm.complete(
             self._messages(question, history, retrieval),
             max_output_tokens=self._settings.chat_max_output_tokens,
         )
-        self._log(completion.usage, started)
-        return Answer(completion.text, retrieval.citations(), completion.usage)
+        usage = completion.usage + retrieval.usage
+        self._log(usage, started)
+        return Answer(completion.text, retrieval.citations(), usage)
 
     async def stream(
         self,
@@ -100,12 +115,13 @@ class QueryService:
     ) -> AsyncIterator[QueryEvent]:
         started = time.perf_counter()
         question = self._validate(question)
-        retrieval = await self._retrieve(user_id, question, document_ids)
+        retrieval = await self.retrieve(user_id, question, document_ids)
         if not retrieval.chunks:
             yield SourcesEvent([])
             yield TextDelta(NO_DOCUMENTS_ANSWER)
-            yield DoneEvent(TokenUsage())
+            yield DoneEvent(retrieval.usage)
             return
+        retrieval = self._fit_budget(retrieval)
         # Sources go out first so the UI can render citation cards while the answer streams.
         yield SourcesEvent(retrieval.citations())
         async for event in self._llm.stream(
@@ -113,8 +129,9 @@ class QueryService:
             max_output_tokens=self._settings.chat_max_output_tokens,
         ):
             if isinstance(event, StreamEnd):
-                self._log(event.usage, started)
-                yield DoneEvent(event.usage)
+                usage = event.usage + retrieval.usage
+                self._log(usage, started)
+                yield DoneEvent(usage)
             else:
                 yield event
 
@@ -128,9 +145,16 @@ class QueryService:
             )
         return question
 
-    async def _retrieve(
-        self, user_id: str, question: str, document_ids: Sequence[str] | None
-    ) -> _Retrieval:
+    async def retrieve(
+        self,
+        user_id: str,
+        question: str,
+        document_ids: Sequence[str] | None = None,
+        *,
+        top_k: int | None = None,
+    ) -> Retrieval:
+        """Rank the user's chunks for ``question``, best first."""
+        question = self._validate(question)
         ready = {
             d.document_id: d.filename
             for d in await self._documents.list(user_id)
@@ -142,21 +166,54 @@ class QueryService:
                 raise NotFoundError("One or more selected documents don't exist or aren't ready.")
             ready = {d: ready[d] for d in document_ids}
         if not ready:
-            return _Retrieval([], {})
+            return Retrieval([], {})
+        s = self._settings
+        top_k = top_k or s.retrieval_top_k
+        # With a reranker, fetch a wider pool first; the reranker decides the final order.
+        fetch = max(top_k, s.rerank_candidates) if self._reranker else top_k
         query_vector = (await self._embedder.embed([question]))[0]
         chunks = await self._vectors.search(
-            user_id, query_vector, top_k=self._settings.retrieval_top_k, document_ids=ready.keys()
+            user_id,
+            query_vector,
+            query_text=question,
+            top_k=fetch,
+            document_ids=ready.keys(),
+            mode=s.retrieval_mode,
+            candidates=s.retrieval_candidates,
         )
-        return _Retrieval(chunks, ready)
+        usage = TokenUsage()
+        if self._reranker and len(chunks) > 1:
+            reranked = await self._reranker.rerank(question, chunks)
+            chunks, usage = reranked.chunks, reranked.usage
+        return Retrieval(chunks[:top_k], ready, usage)
+
+    def _fit_budget(self, retrieval: Retrieval) -> Retrieval:
+        """Keep best-first chunks while they fit ``context_token_budget`` (always at least one),
+        so a few huge chunks can't blow up prompt size and cost."""
+        kept: list[ScoredChunk] = []
+        used = 0
+        for scored in retrieval.chunks:
+            tokens = len(self._encoding.encode(scored.chunk.text, disallowed_special=()))
+            if kept and used + tokens > self._settings.context_token_budget:
+                break
+            kept.append(scored)
+            used += tokens
+        return Retrieval(kept, retrieval.filenames, retrieval.usage)
 
     def _messages(
-        self, question: str, history: Sequence[Message], retrieval: _Retrieval
+        self, question: str, history: Sequence[Message], retrieval: Retrieval
     ) -> list[Message]:
         # Only plain conversation turns are accepted from the client, and only the most recent
-        # ones, which bounds prompt size (token-budget trimming arrives with the usage bars).
+        # ones, which bounds prompt size (history token budgets arrive with the usage bars).
         turns = [m for m in history if m.role in ("user", "assistant")]
         turns = turns[-self._settings.max_history_messages :]
-        return build_messages(question, turns, retrieval.chunks, retrieval.filenames)
+        return build_messages(
+            question,
+            turns,
+            retrieval.chunks,
+            retrieval.filenames,
+            version=self._settings.prompt_version,
+        )
 
     def _log(self, usage: TokenUsage, started: float) -> None:
         logger.info(

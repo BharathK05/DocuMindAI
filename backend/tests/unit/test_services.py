@@ -178,7 +178,7 @@ async def test_history_is_trimmed_to_recent_turns(container: Container, sample_p
     messages = container.query_service._messages(
         "q?",
         history,
-        await container.query_service._retrieve(USER, "q?", None),
+        await container.query_service.retrieve(USER, "q?"),
     )
     roles = [m.role for m in messages]
     assert roles.count("system") == 1  # client-supplied system turns are dropped

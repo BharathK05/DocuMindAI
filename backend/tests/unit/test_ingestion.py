@@ -47,7 +47,7 @@ def test_chunk_pages_tracks_page_numbers_and_indices() -> None:
 
 class TestParsePdf:
     def test_extracts_text_per_page(self) -> None:
-        pages = parse_pdf(make_pdf(["First page", "Second page"]), max_pages=10)
+        pages = parse_pdf(make_pdf(["First page", "Second page"]), max_pages=10).pages
         assert [(p.number, p.text) for p in pages] == [(1, "First page"), (2, "Second page")]
 
     def test_rejects_non_pdf(self) -> None:
