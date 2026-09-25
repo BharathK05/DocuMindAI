@@ -1,0 +1,4 @@
+# Reviewed false positives (gitleaks fingerprint per line). Never add a real secret here.
+# container.py: `Name=settings.openai_api_key_ssm_parameter` is a settings field name
+# (the SSM parameter path), not a key value.
+5e7b19abc0c1d0cfeaaa02e742bee851a898fb9b:backend/src/documind/core/container.py:generic-api-key:67

@@ -65,9 +65,30 @@ jobs:
           path: backend/coverage.xml
           retention-days: 7
 
+  security:
+    name: Security scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # scan every commit, not just the latest, for leaked secrets
+      - name: Secret scan (gitleaks, full history)
+        working-directory: .
+        run: >-
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1
+          git /repo --redact --no-banner
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[server,dev]" "pip-audit~=2.10"
+      - name: Dependency vulnerability scan (pip-audit)
+        run: pip-audit --skip-editable --progress-spinner off
+
   build-lambda:
     name: Build Lambda packages
-    needs: [quality, test]
+    needs: [quality, test, security]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

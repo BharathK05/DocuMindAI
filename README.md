@@ -56,14 +56,47 @@ python ../demos/gradio_app.py                        # or the Gradio demo UI
 ```
 
 ### API
+Every endpoint except `/health` requires `Authorization: Bearer <token>`:
+- **On AWS:** a Cognito access token.
+- **Locally:** a development token. Mint one with:
+  ```bash
+  cd backend
+  python -m documind.scripts.dev_token --user alice
+  ```
+  Paste it into **Authorize** at `/docs`. Each `--user` is a separate, isolated account.
+
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/v1/documents` | Register a PDF and get a presigned S3 upload form |
 | `POST` | `/v1/documents/{id}/complete` | Confirm the upload and queue ingestion |
 | `GET` | `/v1/documents` / `/v1/documents/{id}` | List documents / check ingestion status |
 | `DELETE` | `/v1/documents/{id}` | Delete a document and all its chunks |
-| `POST` | `/v1/query` | Answer with citations and token usage |
-| `POST` | `/v1/query/stream` | Same, streamed as SSE: `sources` → `token`… → `done` |
+| `POST` | `/v1/conversations` | Start a conversation (the server stores and manages its history) |
+| `GET` | `/v1/conversations` / `/v1/conversations/{id}` | List conversations / read one, with messages and citations |
+| `DELETE` | `/v1/conversations/{id}` | Delete a conversation |
+| `POST` | `/v1/query` | Answer with citations, plus token usage, context-window and daily-quota figures |
+| `POST` | `/v1/query/stream` | Same, streamed as SSE: `sources` → `token`… → `done` (the `done` event carries the usage figures) |
+| `GET` | `/v1/usage?conversation_id=` | Figures for the two usage bars: context window and daily quota |
+
+To walk through the whole flow against the local stack:
+```bash
+python backend/scripts/try_api.py some.pdf "Your question?"
+```
+
+### Security and cost controls
+- **Tenant isolation.** The token's `sub` claim is the user id. Every DynamoDB key starts with `USER#<id>`, and no repository method can read without one.
+- **Rate limits.** Defaults are 20 questions per minute and 20 uploads per hour per user. The counters live in DynamoDB, so the limits hold across Lambda instances. Over the limit, the API returns `429` with `Retry-After`.
+- **Daily token quota.** The default is 200k tokens, about 40 questions. When it's used up, the API returns a clear `429 quota_exceeded` saying when it resets.
+- **Context budget.** Each conversation's prompt is kept within 16k tokens. Near the limit, older turns are summarized (or dropped) and the response includes a notice.
+- **Prompt-injection defenses.**
+  - Document text is fenced as untrusted data.
+  - Tag-like text inside documents is neutralized.
+  - Clients can't send system messages.
+  - Stored history comes from the server, not the client.
+- **CI scans.**
+  - gitleaks checks the full git history for leaked secrets.
+  - pip-audit checks dependencies for known vulnerabilities.
+  - Dependabot opens weekly update pull requests.
 
 ### Tests and checks
 ```bash

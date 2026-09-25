@@ -1,0 +1,21 @@
+# Weekly pull requests for outdated or vulnerable dependencies. CI runs on each one, so an
+# update is only merged if lint, tests, security scans and the Lambda build still pass.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      # One PR for all minor/patch bumps instead of one per library.
+      python-minor-and-patch:
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
