@@ -65,6 +65,32 @@ jobs:
           path: backend/coverage.xml
           retention-days: 7
 
+  terraform:
+    name: Terraform fmt, validate, tflint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.16.0"
+      - uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: v0.64.0
+      - run: terraform fmt -check -recursive
+      - name: Validate every root module (no AWS access needed)
+        run: |
+          for dir in account envs/dev envs/prod; do
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+          done
+      - run: tflint --init --config "$PWD/.tflint.hcl"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}  # avoids API rate limits when fetching the plugin
+      - run: tflint --recursive --config "$PWD/.tflint.hcl"
+
   security:
     name: Security scans
     runs-on: ubuntu-latest
