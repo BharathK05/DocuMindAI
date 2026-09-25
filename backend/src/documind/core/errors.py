@@ -9,6 +9,11 @@ class DocumindError(Exception):
         super().__init__(message)
         self.message = message
 
+    @property
+    def headers(self) -> dict[str, str]:
+        """Extra HTTP headers for this error (e.g. Retry-After)."""
+        return {}
+
 
 class NotFoundError(DocumindError):
     status_code = 404
@@ -42,3 +47,33 @@ class ProviderError(DocumindError):
 
     status_code = 503
     code = "provider_unavailable"
+
+
+class UnauthorizedError(DocumindError):
+    status_code = 401
+    code = "unauthorized"
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return {"WWW-Authenticate": "Bearer"}
+
+
+class RateLimitedError(DocumindError):
+    """Too many requests in the current window. ``retry_after`` is in seconds."""
+
+    status_code = 429
+    code = "rate_limited"
+
+    def __init__(self, message: str, retry_after: int) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return {"Retry-After": str(self.retry_after)}
+
+
+class QuotaExceededError(RateLimitedError):
+    """The user's daily token quota is used up until ``retry_after`` seconds from now."""
+
+    code = "quota_exceeded"

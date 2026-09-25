@@ -1,8 +1,13 @@
+import secrets
+
 import pytest
 
 from documind.core.config import Backend, LLMProviderName, Settings
 from documind.core.container import Container, build_container
 from tests.pdf_factory import make_pdf
+
+# Random per test run: no secret-looking literal in the repo for scanners (or people) to flag.
+TEST_JWT_SECRET = secrets.token_urlsafe(48)
 
 
 @pytest.fixture
@@ -14,6 +19,7 @@ def settings() -> Settings:
         chunk_size=200,
         chunk_overlap=30,
         retrieval_top_k=3,
+        jwt_secret=TEST_JWT_SECRET,
     )
 
 

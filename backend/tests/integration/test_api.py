@@ -7,17 +7,33 @@ import httpx
 import pytest
 
 from documind.api.app import create_app
+from documind.core.auth import LocalAuthenticator
 from documind.core.container import Container
 from documind.repositories.memory import InlineJobQueue, InMemoryBlobStore
+from tests.conftest import TEST_JWT_SECRET
+
+AUTH = LocalAuthenticator(TEST_JWT_SECRET)
+
+
+def bearer(user: str = "alice") -> dict[str, str]:
+    return {"Authorization": f"Bearer {AUTH.issue(user)}"}
 
 
 @pytest.fixture
-async def client(container: Container) -> AsyncIterator[httpx.AsyncClient]:
-    app = create_app(container=container)
-    app.state.container = container  # ASGITransport doesn't run lifespan events
+async def anonymous(container: Container) -> AsyncIterator[httpx.AsyncClient]:
+    app = create_app(container=container, authenticator=AUTH)
+    # ASGITransport doesn't run lifespan events, so set what the lifespan would.
+    app.state.container = container
+    app.state.authenticator = AUTH
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+
+
+@pytest.fixture
+async def client(anonymous: httpx.AsyncClient) -> httpx.AsyncClient:
+    anonymous.headers.update(bearer("alice"))
+    return anonymous
 
 
 async def upload(client: httpx.AsyncClient, container: Container, data: bytes) -> str:

@@ -32,6 +32,11 @@ class RerankerName(StrEnum):
     LLM = "llm"  # listwise reranking by the chat model
 
 
+class AuthMode(StrEnum):
+    LOCAL = "local"
+    COGNITO = "cognito"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DOCUMIND_", env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -40,8 +45,26 @@ class Settings(BaseSettings):
     env: str = "local"
     log_level: str = "INFO"
     cors_origins: list[str] = ["http://localhost:3000"]
-    # Replaced by Cognito/JWT auth in Phase 4; until then every request acts as this user.
-    dev_user_id: str = "local-dev-user"
+
+    # --- Authentication ------------------------------------------------------------------------
+    # "cognito" in AWS (RS256 access tokens verified against the user pool's public keys);
+    # "local" for development (HS256 tokens signed with jwt_secret, minted by
+    # `python -m documind.scripts.dev_token`).
+    auth_mode: AuthMode = AuthMode.LOCAL
+    jwt_secret: SecretStr | None = None
+    cognito_user_pool_id: str | None = None
+    cognito_app_client_id: str | None = None
+
+    # --- Abuse and cost limits (per user) -----------------------------------------------------
+    rate_limit_queries_per_minute: int = 20
+    rate_limit_uploads_per_hour: int = 20
+    daily_token_quota: int = 200_000  # chat tokens (answers + reranking) per UTC day
+    # The context bar measures against this app-level budget, not the model's 1M-token window:
+    # sending ever-longer histories would multiply cost long before the model's limit matters.
+    context_window_tokens: int = 16_000
+    context_summarize_at: float = 0.9  # summarise older turns above this share of the budget
+    context_keep_recent_messages: int = 4  # never summarised away
+    upload_ttl_seconds: int = 24 * 3600  # abandoned "awaiting_upload" records expire after this
 
     # --- Infrastructure wiring -------------------------------------------------------------
     backend: Backend = Backend.MEMORY
@@ -110,7 +133,17 @@ class Settings(BaseSettings):
     def _check(self) -> "Settings":
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("chunk_overlap must be smaller than chunk_size")
+        if self.auth_mode is AuthMode.COGNITO and not (
+            self.cognito_user_pool_id and self.cognito_app_client_id
+        ):
+            raise ValueError("auth_mode=cognito needs cognito_user_pool_id and app_client_id")
+        if self.jwt_secret is not None and len(self.jwt_secret.get_secret_value()) < 32:
+            raise ValueError("jwt_secret must be at least 32 characters")
         return self
+
+    @property
+    def context_limit(self) -> int:
+        return min(self.context_window_tokens, self.chat_context_window)
 
 
 @lru_cache
