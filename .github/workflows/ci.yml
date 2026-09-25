@@ -1,5 +1,5 @@
 # Continuous integration: every pull request (and every push to main/upgrade) must pass
-# lint, type-check, tests and a Lambda package build before it can be merged.
+# lint, type-check, tests, the web app's checks and a Lambda package build before merging.
 name: CI
 
 on:
@@ -111,6 +111,33 @@ jobs:
       - run: pip install -e ".[server,dev]" "pip-audit~=2.10"
       - name: Dependency vulnerability scan (pip-audit)
         run: pip-audit --skip-editable --progress-spinner off
+
+  frontend:
+    name: Web app (lint, types, tests, build, Lighthouse)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build (also refreshes the landing page's eval numbers)
+        run: npm run build
+      - name: Eval numbers on the landing page match the committed results file
+        run: git diff --exit-code src/data/eval.json
+      - name: Dependency vulnerability scan (npm audit, production deps)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Lighthouse (performance and accessibility must score 90+)
+        run: npx --yes @lhci/cli@0.15.1 autorun
 
   build-lambda:
     name: Build Lambda packages

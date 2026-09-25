@@ -1,12 +1,12 @@
 # Infrastructure delivery with Terraform and GitHub OIDC (no AWS keys stored in GitHub).
 #   pull request -> build packages, `terraform plan` for dev and prod, posted as a PR comment
-#   merge to main -> apply dev automatically, then prod after a reviewer approves the
-#                    "production" environment in GitHub
+#   merge to main -> apply dev automatically (then publish the web app), then prod after a
+#                    reviewer approves the "production" environment in GitHub
 name: Deploy
 
 on:
   pull_request:
-    paths: ["infra/**", "backend/**", ".github/workflows/deploy.yml"]
+    paths: ["infra/**", "backend/**", "frontend/**", ".github/workflows/deploy.yml"]
   push:
     branches: [main]
   workflow_dispatch:
@@ -28,7 +28,7 @@ env:
 
 jobs:
   package:
-    name: Build Lambda packages
+    name: Build packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -43,6 +43,19 @@ jobs:
           path: |
             backend/dist/function.zip
             backend/dist/layer-arm64.zip
+          retention-days: 7
+      # One web build for every environment: each one gets its own config.json from Terraform.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: frontend
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web
+          path: frontend/out
           retention-days: 7
 
   plan:
@@ -131,6 +144,19 @@ jobs:
           url="$(terraform output -raw api_url)"
           curl --fail --silent --show-error --retry 5 --retry-delay 5 "${url}health"
           test "$(curl -s -o /dev/null -w '%{http_code}' "${url}v1/documents")" = "401"
+      - uses: actions/download-artifact@v8
+        with:
+          name: web
+          path: frontend/out
+      - name: Publish web app
+        run: |
+          bash ../../../frontend/scripts/publish.sh "$(terraform output -raw web_bucket)" "$(terraform output -raw web_distribution_id)"
+      - name: Smoke test web app
+        run: |
+          site="$(terraform output -raw web_url)"
+          curl --fail --silent --show-error --retry 5 --retry-delay 10 "${site}/" -o /dev/null
+          curl --fail --silent --show-error "${site}/config.json" | grep -q "$(terraform output -raw api_url)"
+          curl --fail --silent --show-error --head "${site}/chat/" | grep -qi "content-security-policy"
 
   deploy-prod:
     name: Apply prod
@@ -164,3 +190,16 @@ jobs:
           url="$(terraform output -raw api_url)"
           curl --fail --silent --show-error --retry 5 --retry-delay 5 "${url}health"
           test "$(curl -s -o /dev/null -w '%{http_code}' "${url}v1/documents")" = "401"
+      - uses: actions/download-artifact@v8
+        with:
+          name: web
+          path: frontend/out
+      - name: Publish web app
+        run: |
+          bash ../../../frontend/scripts/publish.sh "$(terraform output -raw web_bucket)" "$(terraform output -raw web_distribution_id)"
+      - name: Smoke test web app
+        run: |
+          site="$(terraform output -raw web_url)"
+          curl --fail --silent --show-error --retry 5 --retry-delay 10 "${site}/" -o /dev/null
+          curl --fail --silent --show-error "${site}/config.json" | grep -q "$(terraform output -raw api_url)"
+          curl --fail --silent --show-error --head "${site}/chat/" | grep -qi "content-security-policy"
