@@ -15,3 +15,7 @@ dist/
 
 # Database (legacy Chroma prototype)
 chroma_db/
+
+# Coverage output
+.coverage
+coverage.xml
