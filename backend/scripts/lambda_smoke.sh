@@ -12,10 +12,14 @@ IMAGE="public.ecr.aws/lambda/python:3.13"
 [ "$ARCH" = "arm64" ] && IMAGE="$IMAGE-arm64"
 export MSYS_NO_PATHCONV=1  # Git Bash on Windows: don't rewrite the container paths below
 
+# The API refuses to start without auth configured; a throwaway signing key is enough here.
+JWT_SECRET="$(head -c 48 /dev/urandom | base64 | tr -d '\n')"
+
 docker run --rm --network none --entrypoint sh \
   -v "$BUILD/layer:/src/layer:ro" -v "$BUILD/function:/src/function:ro" \
   -e TIKTOKEN_CACHE_DIR=/opt/tiktoken_cache \
   -e DOCUMIND_LLM_PROVIDER=fake -e DOCUMIND_LOG_LEVEL=WARNING \
+  -e DOCUMIND_JWT_SECRET="$JWT_SECRET" \
   "$IMAGE" -c '
 set -e
 # Copy into the container filesystem (bind mounts can be slow) where Lambda would put them.
