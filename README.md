@@ -68,6 +68,22 @@ python ../demos/gradio_app.py                        # or the Gradio demo UI
 ### Tests and checks
 ```bash
 cd backend
-pytest              # unit + integration (moto emulates AWS; LLM calls use a fake provider)
-ruff check . && ruff format --check . && mypy src
+pytest --cov                                  # unit + integration; fails below 90% coverage
+ruff check . && ruff format --check . && mypy src evals tests scripts
+```
+- **Mocked dependencies.** Tests need no OpenAI key or AWS account: LLM calls use a deterministic fake provider, and AWS is emulated in-process by [moto](https://github.com/getmoto/moto).
+
+### Continuous integration
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and every push to `main` or `upgrade`, in three jobs:
+1. **Lint and type-check.** Ruff checks linting and formatting, and mypy type-checks in strict mode.
+2. **Tests.** pytest with a 90% coverage gate.
+3. **Build Lambda packages.** Runs only if the first two pass:
+   - builds the deployment zips;
+   - smoke-tests them inside AWS's official Lambda Python image with the network disabled;
+   - uploads the arm64 zips as a build artifact.
+
+To build and check the Lambda packages locally (needs Docker):
+```bash
+cd backend
+python scripts/build_lambda.py --arch x86_64 && bash scripts/lambda_smoke.sh x86_64
 ```

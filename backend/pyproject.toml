@@ -26,6 +26,7 @@ dev = [
     "mypy~=2.3",
     "pytest~=9.1",
     "pytest-asyncio~=1.4",
+    "pytest-cov~=7.1",
     "ruff~=0.16.8",
 ]
 
@@ -39,6 +40,17 @@ packages = ["src/documind"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["documind"]
+branch = true
+
+[tool.coverage.report]
+# CI fails if coverage drops below this (currently ~93%).
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "if __name__ == .__main__.:"]
 
 [tool.ruff]
 line-length = 100

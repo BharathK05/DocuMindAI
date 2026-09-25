@@ -1,0 +1,94 @@
+# Continuous integration: every pull request (and every push to main/upgrade) must pass
+# lint, type-check, tests and a Lambda package build before it can be merged.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, upgrade]
+  workflow_dispatch:
+
+# A newer push to the same branch/PR cancels the older, now-irrelevant run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: CI only needs to read the code.
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  PYTHON_VERSION: "3.13"  # must match the Lambda runtime
+
+jobs:
+  quality:
+    name: Lint and type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[server,dev]"
+      - name: Ruff lint
+        run: ruff check --output-format=github .
+      - name: Ruff format
+        run: ruff format --check .
+      - name: Mypy (strict)
+        run: mypy src evals tests scripts
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[server,dev]"
+      # No OpenAI key and no AWS account needed: LLM calls use a fake provider and AWS is
+      # emulated in-process by moto. Fails if coverage drops below the gate in pyproject.toml.
+      - name: Pytest with coverage
+        run: pytest -q --cov --cov-report=term --cov-report=xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-xml
+          path: backend/coverage.xml
+          retention-days: 7
+
+  build-lambda:
+    name: Build Lambda packages
+    needs: [quality, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install tiktoken~=0.14.0  # only needed to pre-fetch tokenizer files
+      # The runner is x86_64, so it can run the x86_64 package inside AWS's Lambda image.
+      - name: Build x86_64 package
+        run: python scripts/build_lambda.py --arch x86_64
+      - name: Smoke-test inside the official Lambda image (network disabled)
+        run: bash scripts/lambda_smoke.sh x86_64
+      # arm64 (Graviton) is what gets deployed: same code, ARM wheels.
+      - name: Build arm64 package
+        run: python scripts/build_lambda.py --arch arm64
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lambda-packages
+          path: |
+            backend/dist/layer-arm64.zip
+            backend/dist/function.zip
+          retention-days: 7
