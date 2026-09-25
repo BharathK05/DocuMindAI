@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from typing import Any
 
-import httpx
+import httpx2  # the OpenAI SDK v3 HTTP client
 import numpy as np
 import openai
 import pytest
@@ -70,9 +70,9 @@ async def test_embed_empty_input_makes_no_calls() -> None:
 
 
 async def test_embed_wraps_provider_errors() -> None:
-    request = httpx.Request("POST", "https://api.openai.com/v1/embeddings")
+    request = httpx2.Request("POST", "https://api.openai.com/v1/embeddings")
     error = openai.RateLimitError(
-        "slow down", response=httpx.Response(429, request=request), body=None
+        "slow down", response=httpx2.Response(429, request=request), body=None
     )
     with pytest.raises(ProviderError, match="unavailable"):
         await embedder(StubEmbeddings(fail_with=error)).embed(["x"])

@@ -29,7 +29,7 @@ def aws_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[Settings]:
         monkeypatch.setenv(key, "testing")
     with mock_aws():
         settings = Settings(
-            _env_file=None,  # type: ignore[call-arg]
+            _env_file=None,
             backend=Backend.AWS,
             llm_provider=LLMProviderName.FAKE,
             chunk_size=200,
@@ -138,3 +138,25 @@ async def test_end_to_end_through_sqs(aws: Container, sample_pdf: bytes) -> None
     assert await aws.blobs.size(ticket.document.blob_key) is None  # PDF deleted after indexing
     answer = await aws.query_service.answer("u1", "Where are the headquarters?")
     assert answer.citations[0].page == 2
+
+
+async def test_worker_poll_deletes_successes_and_keeps_failures(
+    aws: Container, sample_pdf: bytes
+) -> None:
+    from documind.worker import poll_once
+
+    assert isinstance(aws.queue, SqsJobQueue)
+    queue = aws.queue
+    ticket = await aws.document_service.create_upload("u1", "r.pdf", len(sample_pdf))
+    boto3.client("s3", region_name=aws.settings.aws_region).put_object(
+        Bucket=aws.settings.s3_bucket, Key=ticket.document.blob_key, Body=sample_pdf
+    )
+    await aws.document_service.complete_upload("u1", ticket.document.document_id)
+    assert await poll_once(aws, queue, wait_seconds=0) == 1  # processed and deleted
+
+    queue.client.send_message(QueueUrl=queue.queue_url, MessageBody="not json")
+    assert await poll_once(aws, queue, wait_seconds=0) == 0  # failed: left for redelivery
+    attrs = queue.client.get_queue_attributes(
+        QueueUrl=queue.queue_url, AttributeNames=["ApproximateNumberOfMessagesNotVisible"]
+    )["Attributes"]
+    assert attrs["ApproximateNumberOfMessagesNotVisible"] == "1"

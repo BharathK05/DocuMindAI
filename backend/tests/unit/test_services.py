@@ -1,5 +1,7 @@
 """Service-level behaviour with in-memory storage and fake providers."""
 
+from typing import Any
+
 import pytest
 
 from documind.core.container import Container
@@ -9,8 +11,9 @@ from documind.core.errors import (
     InvalidInputError,
     NotFoundError,
     PayloadTooLargeError,
+    ProviderError,
 )
-from documind.domain import DocumentStatus
+from documind.domain import DocumentPatch, DocumentStatus, IngestJob
 from documind.repositories.memory import InlineJobQueue, InMemoryBlobStore
 from documind.services.query import NO_DOCUMENTS_ANSWER, DoneEvent, SourcesEvent
 
@@ -183,3 +186,62 @@ async def test_history_is_trimmed_to_recent_turns(container: Container, sample_p
     roles = [m.role for m in messages]
     assert roles.count("system") == 1  # client-supplied system turns are dropped
     assert len(messages) == 1 + container.settings.max_history_messages + 1
+
+
+class FlakyEmbedder:
+    """Fails the first ``failures`` calls, like a provider having a bad minute."""
+
+    def __init__(self, inner: Any, failures: int) -> None:
+        self.inner, self.failures = inner, failures
+
+    @property
+    def dimensions(self) -> int:
+        return int(self.inner.dimensions)
+
+    async def embed(self, texts: Any) -> Any:
+        if self.failures > 0:
+            self.failures -= 1
+            raise ProviderError("provider down")
+        return await self.inner.embed(texts)
+
+
+async def pending_document(c: Container, data: bytes) -> str:
+    ticket = await c.document_service.create_upload(USER, "r.pdf", len(data))
+    assert isinstance(c.blobs, InMemoryBlobStore)
+    c.blobs.objects[ticket.document.blob_key] = data
+    await c.documents.update(
+        USER, ticket.document.document_id, DocumentPatch(status=DocumentStatus.PENDING)
+    )
+    return ticket.document.document_id
+
+
+async def test_transient_failure_is_retried_then_succeeds(
+    container: Container, sample_pdf: bytes
+) -> None:
+    doc_id = await pending_document(container, sample_pdf)
+    flaky = FlakyEmbedder(container.embedder, failures=1)
+    container.ingestion_service._embedder = flaky
+
+    with pytest.raises(ProviderError):  # attempt 1: raise so SQS redelivers
+        await container.ingestion_service.process(
+            IngestJob(USER, doc_id), attempt=1, max_attempts=3
+        )
+    doc = await container.document_service.get(USER, doc_id)
+    assert doc.status is DocumentStatus.PROCESSING  # not failed yet: more attempts left
+
+    await container.ingestion_service.process(IngestJob(USER, doc_id), attempt=2, max_attempts=3)
+    doc = await container.document_service.get(USER, doc_id)
+    assert doc.status is DocumentStatus.READY
+
+
+async def test_final_attempt_marks_document_failed(container: Container, sample_pdf: bytes) -> None:
+    doc_id = await pending_document(container, sample_pdf)
+    container.ingestion_service._embedder = FlakyEmbedder(container.embedder, failures=99)
+
+    with pytest.raises(ProviderError):  # still raised, so the message lands in the DLQ
+        await container.ingestion_service.process(
+            IngestJob(USER, doc_id), attempt=3, max_attempts=3
+        )
+    doc = await container.document_service.get(USER, doc_id)
+    assert doc.status is DocumentStatus.FAILED
+    assert doc.error == "Processing failed after several attempts."

@@ -8,7 +8,7 @@ from tests.pdf_factory import make_pdf
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
-        _env_file=None,  # type: ignore[call-arg]  # never read a developer's local .env
+        _env_file=None,  # never read a developer's local .env
         backend=Backend.MEMORY,
         llm_provider=LLMProviderName.FAKE,
         chunk_size=200,

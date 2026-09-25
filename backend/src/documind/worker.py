@@ -24,42 +24,49 @@ async def handle_message(container: Container, body: str, receive_count: int) ->
     )
 
 
+async def poll_once(container: Container, queue: SqsJobQueue, wait_seconds: int = 20) -> int:
+    """Receive and process at most one message. Returns how many messages succeeded."""
+    response = await asyncio.to_thread(
+        queue.client.receive_message,
+        QueueUrl=queue.queue_url,
+        MaxNumberOfMessages=1,  # one PDF at a time keeps memory bounded
+        WaitTimeSeconds=wait_seconds,  # long polling: fewer empty receives (and requests)
+        MessageSystemAttributeNames=["ApproximateReceiveCount"],
+    )
+    succeeded = 0
+    for message in response.get("Messages", []):
+        receive_count = int(message["Attributes"]["ApproximateReceiveCount"])
+        try:
+            await handle_message(container, message["Body"], receive_count)
+        except Exception:
+            # Not deleted: after the visibility timeout SQS redelivers it, and after
+            # maxReceiveCount deliveries it moves to the dead-letter queue.
+            logger.exception("message failed", extra={"receive_count": receive_count})
+            continue
+        await asyncio.to_thread(
+            queue.client.delete_message,
+            QueueUrl=queue.queue_url,
+            ReceiptHandle=message["ReceiptHandle"],
+        )
+        succeeded += 1
+    return succeeded
+
+
 async def run(container: Container) -> None:
     queue = container.queue
     if not isinstance(queue, SqsJobQueue):
         raise RuntimeError("The standalone worker needs DOCUMIND_BACKEND=aws (SQS).")
-    client = queue.client
     logger.info("worker started", extra={"queue_url": queue.queue_url})
     backoff = 1.0
     while True:
         try:
-            response = await asyncio.to_thread(
-                client.receive_message,
-                QueueUrl=queue.queue_url,
-                MaxNumberOfMessages=1,  # one PDF at a time keeps memory bounded
-                WaitTimeSeconds=20,  # long polling: fewer empty receives (and requests)
-                MessageSystemAttributeNames=["ApproximateReceiveCount"],
-            )
+            await poll_once(container, queue)
+            backoff = 1.0
         except Exception:
             # Queue briefly unreachable: back off instead of crashing the worker.
             logger.exception("receive failed", extra={"retry_in_s": backoff})
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 30.0)
-            continue
-        backoff = 1.0
-        for message in response.get("Messages", []):
-            receive_count = int(message["Attributes"]["ApproximateReceiveCount"])
-            try:
-                await handle_message(container, message["Body"], receive_count)
-            except Exception:
-                # Visibility timeout expires → SQS redelivers; after maxReceiveCount → DLQ.
-                logger.exception("message failed", extra={"receive_count": receive_count})
-                continue
-            await asyncio.to_thread(
-                client.delete_message,
-                QueueUrl=queue.queue_url,
-                ReceiptHandle=message["ReceiptHandle"],
-            )
 
 
 def main() -> None:
