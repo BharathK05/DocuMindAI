@@ -40,6 +40,14 @@ def _create_table(settings: Settings) -> None:
     except ClientError as exc:
         if exc.response["Error"]["Code"] != "ResourceInUseException":
             raise
+    # Rate-limit windows, daily usage counters and abandoned uploads carry `expires_at`;
+    # TTL deletes them automatically (and free of charge) once that time passes.
+    ttl = dynamodb.describe_time_to_live(TableName=settings.dynamodb_table)
+    if ttl["TimeToLiveDescription"]["TimeToLiveStatus"] in ("DISABLED", "DISABLING"):
+        dynamodb.update_time_to_live(
+            TableName=settings.dynamodb_table,
+            TimeToLiveSpecification={"Enabled": True, "AttributeName": "expires_at"},
+        )
 
 
 def _create_bucket(settings: Settings) -> None:

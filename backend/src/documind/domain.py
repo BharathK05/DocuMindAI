@@ -31,6 +31,8 @@ class Document(BaseModel):
     page_count: int | None = None
     chunk_count: int | None = None
     error: str | None = None
+    # Epoch seconds; DynamoDB TTL deletes the record after this (used for abandoned uploads).
+    expires_at: int | None = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -47,6 +49,7 @@ class DocumentPatch(BaseModel):
     page_count: int | None = None
     chunk_count: int | None = None
     error: str | None = None
+    expires_at: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,3 +119,37 @@ class Citation:
 class IngestJob:
     user_id: str
     document_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class DailyUsage:
+    """One user's chat-token consumption for one UTC day (e.g. "2026-09-25")."""
+
+    day: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    requests: int = 0
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+
+class ConversationMessage(BaseModel):
+    index: int
+    role: Literal["user", "assistant"]
+    content: str
+    citations: list[Citation] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class Conversation(BaseModel):
+    user_id: str
+    conversation_id: str
+    title: str
+    message_count: int = 0
+    # Messages [0, summarized_through) are represented by ``summary`` in the model's context.
+    summary: str | None = None
+    summarized_through: int = 0
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)

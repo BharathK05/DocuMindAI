@@ -1,6 +1,7 @@
 """Document lifecycle: request an upload URL → confirm upload → (async ingestion) → list/delete."""
 
 import logging
+import time
 import uuid
 from dataclasses import dataclass
 
@@ -17,12 +18,14 @@ from documind.repositories.base import (
     DocumentRepository,
     JobQueue,
     PresignedUpload,
+    RateLimiter,
     VectorStore,
 )
 
 logger = logging.getLogger(__name__)
 
 MAX_FILENAME_CHARS = 255
+UPLOAD_WINDOW_SECONDS = 3600
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,21 +55,31 @@ class DocumentService:
         vectors: VectorStore,
         blobs: BlobStore,
         queue: JobQueue,
+        limiter: RateLimiter,
     ) -> None:
         self._settings = settings
         self._documents = documents
         self._vectors = vectors
         self._blobs = blobs
         self._queue = queue
+        self._limiter = limiter
 
     async def create_upload(self, user_id: str, filename: str, size_bytes: int) -> UploadTicket:
         name = validate_upload(filename, size_bytes, self._settings.upload_max_bytes)
+        await self._limiter.hit(
+            user_id,
+            "upload",
+            limit=self._settings.rate_limit_uploads_per_hour,
+            window_seconds=UPLOAD_WINDOW_SECONDS,
+        )
         document = Document(
             user_id=user_id,
             document_id=uuid.uuid4().hex,
             filename=name,
             status=DocumentStatus.AWAITING_UPLOAD,
             size_bytes=size_bytes,
+            # If the client never uploads, DynamoDB's TTL removes this record automatically.
+            expires_at=int(time.time()) + self._settings.upload_ttl_seconds,
         )
         await self._documents.create(document)
         upload = self._blobs.presign_upload(
@@ -93,7 +106,7 @@ class DocumentService:
         document = await self._documents.update(
             user_id,
             document_id,
-            DocumentPatch(status=DocumentStatus.PENDING, size_bytes=size),
+            DocumentPatch(status=DocumentStatus.PENDING, size_bytes=size, expires_at=None),
             expected_status={DocumentStatus.AWAITING_UPLOAD},
         )
         await self._queue.enqueue(IngestJob(user_id, document_id))
