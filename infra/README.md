@@ -57,7 +57,7 @@ cd infra/envs/dev && terraform init && terraform plan && terraform apply
 - **Repository settings** (`Settings → Secrets and variables → Actions → Variables`):
   - `AWS_PLAN_ROLE_ARN`
   - `AWS_DEPLOY_ROLE_ARN`
-  - `ALERT_EMAIL`
+  - secret `ALERT_EMAIL` (a secret, so it is masked in public workflow logs)
 
 ## Trying a deployed environment
 ```bash

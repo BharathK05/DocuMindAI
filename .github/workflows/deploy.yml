@@ -24,7 +24,7 @@ env:
   TF_VERSION: "1.16.0"
   TF_IN_AUTOMATION: "1"
   TF_INPUT: "0"
-  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}  # secret: masked in public logs
 
 jobs:
   package:
