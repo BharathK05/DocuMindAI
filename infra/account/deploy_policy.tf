@@ -28,6 +28,54 @@ data "aws_iam_policy_document" "deploy" {
   }
 
   statement {
+    sid       = "WebBuckets" # static site: Terraform manages the bucket, CI syncs the files
+    actions   = ["s3:*"]
+    resources = ["arn:aws:s3:::documind-*-web-*", "arn:aws:s3:::documind-*-web-*/*"]
+  }
+
+  # CloudFront distribution, origin-access-control and policy ARNs contain random IDs, so (as
+  # with Cognito) these are limited to this account rather than to documind-* names. Only the
+  # actions the web module and the cache invalidation use are allowed.
+  statement {
+    sid = "CloudFront"
+    actions = [
+      "cloudfront:CreateDistribution", "cloudfront:CreateDistributionWithTags",
+      "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig",
+      "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution",
+      "cloudfront:TagResource", "cloudfront:UntagResource", "cloudfront:ListTagsForResource",
+      "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl",
+      "cloudfront:GetOriginAccessControlConfig", "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl", "cloudfront:ListOriginAccessControls",
+      "cloudfront:CreateResponseHeadersPolicy", "cloudfront:GetResponseHeadersPolicy",
+      "cloudfront:GetResponseHeadersPolicyConfig", "cloudfront:UpdateResponseHeadersPolicy",
+      "cloudfront:DeleteResponseHeadersPolicy", "cloudfront:ListResponseHeadersPolicies",
+      "cloudfront:GetCachePolicy", "cloudfront:ListCachePolicies",
+      "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation",
+    ]
+    resources = [
+      "arn:aws:cloudfront::${local.account_id}:distribution/*",
+      "arn:aws:cloudfront::${local.account_id}:origin-access-control/*",
+      "arn:aws:cloudfront::${local.account_id}:response-headers-policy/*",
+      "arn:aws:cloudfront::${local.account_id}:cache-policy/*",
+    ]
+  }
+
+  statement {
+    sid = "CloudFrontFunctions"
+    actions = [
+      "cloudfront:CreateFunction", "cloudfront:DescribeFunction", "cloudfront:GetFunction",
+      "cloudfront:UpdateFunction", "cloudfront:PublishFunction", "cloudfront:DeleteFunction",
+    ]
+    resources = ["arn:aws:cloudfront::${local.account_id}:function/documind-*"]
+  }
+
+  statement {
+    sid       = "CloudFrontList" # list APIs only accept "*"
+    actions   = ["cloudfront:ListDistributions", "cloudfront:ListFunctions"]
+    resources = ["*"]
+  }
+
+  statement {
     sid       = "DynamoDB"
     actions   = ["dynamodb:*"]
     resources = ["arn:aws:dynamodb:${local.region}:${local.account_id}:table/documind-*"]

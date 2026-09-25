@@ -11,7 +11,14 @@ A serverless RAG system on the AWS free tier:
 - **Logins:** Cognito.
 - **Infrastructure:** Terraform, deployed by GitHub Actions through OIDC.
 
-The web frontend (Next.js) is next on the roadmap. See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, and [infra/README.md](infra/README.md) for the deployment.
+- **Web app:** Next.js static site on S3 + CloudFront, with a landing page and a chat app.
+  - Chats are named automatically from the first answer.
+  - PDFs are attached in the composer.
+  - Answers stream in with inline page citations.
+  - The header shows context-window and daily-quota bars.
+  - See [frontend/README.md](frontend/README.md).
+
+See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, and [infra/README.md](infra/README.md) for the deployment.
 
 ## How it works
 1. The client asks the API for a presigned URL and uploads the PDF **directly to S3**.
@@ -41,7 +48,13 @@ docker compose up --build              # API → http://localhost:8000/docs
 The compose stack runs DynamoDB Local and [moto](https://github.com/getmoto/moto) (S3 + SQS),
 so local development costs nothing and needs no AWS account.
 
-**Without Docker** (in-memory storage; data resets on restart):
+Then start the web app at http://localhost:3000 and sign in with a dev token (see below):
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+**Without Docker** (in-memory storage; data resets on restart; browser uploads need the Docker stack):
 
 ```bash
 python -m venv .venv && .venv/Scripts/activate      # macOS/Linux: source .venv/bin/activate
@@ -66,11 +79,12 @@ Every endpoint except `/health` requires `Authorization: Bearer <token>`:
 | `POST` | `/v1/documents/{id}/complete` | Confirm the upload and queue ingestion |
 | `GET` | `/v1/documents` / `/v1/documents/{id}` | List documents / check ingestion status |
 | `DELETE` | `/v1/documents/{id}` | Delete a document and all its chunks |
-| `POST` | `/v1/conversations` | Start a conversation (the server stores and manages its history) |
+| `POST` | `/v1/conversations` | Start a conversation, optionally with attached PDFs (the server stores and manages its history) |
 | `GET` | `/v1/conversations` / `/v1/conversations/{id}` | List conversations / read one, with messages and citations |
+| `PATCH` | `/v1/conversations/{id}` | Rename a conversation |
 | `DELETE` | `/v1/conversations/{id}` | Delete a conversation |
 | `POST` | `/v1/query` | Answer with citations, plus token usage, context-window and daily-quota figures |
-| `POST` | `/v1/query/stream` | Same, streamed as SSE: `sources` → `token`… → `done` (the `done` event carries the usage figures) |
+| `POST` | `/v1/query/stream` | Same, streamed as SSE: `sources` → `token`… → `done` (the `done` event carries the usage figures), then `title` on a conversation's first answer |
 | `GET` | `/v1/usage?conversation_id=` | Figures for the two usage bars: context window and daily quota |
 
 To walk through the whole flow against the local stack:

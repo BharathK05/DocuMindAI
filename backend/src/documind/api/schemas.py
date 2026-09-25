@@ -2,7 +2,7 @@
 independently of storage."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,8 @@ from documind.domain import (
 )
 from documind.services.chat import ContextUsage
 from documind.services.usage import AccountUsage
+
+DocumentId = Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
 
 
 class DocumentOut(BaseModel):
@@ -67,7 +69,7 @@ class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2_000)
     history: list[ChatTurn] = Field(default_factory=list, max_length=50)
     # Restrict retrieval to these documents; omit to search all of the user's documents.
-    document_ids: list[str] | None = Field(default=None, max_length=50)
+    document_ids: list[DocumentId] | None = Field(default=None, max_length=50)
     # Continue a stored conversation (server keeps and manages history). Mutually exclusive
     # with `history`, which is for stateless clients.
     conversation_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
@@ -135,6 +137,7 @@ class QueryResponse(BaseModel):
     context: ContextOut
     account: AccountOut
     conversation_id: str | None = None
+    title: str | None = None  # the conversation's new title, after its first answer
 
 
 class UsageResponse(BaseModel):
@@ -144,12 +147,19 @@ class UsageResponse(BaseModel):
 
 class CreateConversationRequest(BaseModel):
     title: str | None = Field(default=None, max_length=200)
+    # PDFs attached to the chat; retrieval is limited to them. Omit to search all your PDFs.
+    document_ids: list[DocumentId] = Field(default_factory=list, max_length=50)
+
+
+class RenameConversationRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
 
 
 class ConversationOut(BaseModel):
     conversation_id: str
     title: str
     message_count: int
+    document_ids: list[str]
     created_at: datetime
     updated_at: datetime
 

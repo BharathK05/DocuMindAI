@@ -88,6 +88,26 @@ class InMemoryConversationRepository:
                 update={"summary": summary, "summarized_through": summarized_through}
             )
 
+    async def update(
+        self,
+        user_id: str,
+        conversation_id: str,
+        *,
+        title: str | None = None,
+        document_ids: Sequence[str] | None = None,
+    ) -> Conversation:
+        key = (user_id, conversation_id)
+        current = self._conversations.get(key)
+        if current is None:
+            raise NotFoundError("Conversation not found.")
+        changes: dict[str, Any] = {"updated_at": utcnow()}
+        if title is not None:
+            changes["title"] = title
+        if document_ids is not None:
+            changes["document_ids"] = list(document_ids)
+        self._conversations[key] = updated = current.model_copy(update=changes)
+        return updated
+
     async def delete(self, user_id: str, conversation_id: str) -> None:
         self._conversations.pop((user_id, conversation_id), None)
         self._messages.pop((user_id, conversation_id), None)
@@ -201,6 +221,38 @@ class DynamoConversationRepository:
                 ":t": {"N": str(summarized_through)},
             },
         )
+
+    async def update(
+        self,
+        user_id: str,
+        conversation_id: str,
+        *,
+        title: str | None = None,
+        document_ids: Sequence[str] | None = None,
+    ) -> Conversation:
+        sets = ["updated_at = :now"]
+        values: dict[str, Any] = {":now": {"S": utcnow().isoformat()}}
+        if title is not None:
+            sets.append("title = :title")
+            values[":title"] = {"S": title}
+        if document_ids is not None:
+            sets.append("document_ids = :docs")
+            values[":docs"] = _ser.serialize(list(document_ids))
+        try:
+            response = await asyncio.to_thread(
+                self._t.client.update_item,
+                TableName=self._t.name,
+                Key=self._meta_key(user_id, conversation_id),
+                UpdateExpression="SET " + ", ".join(sets),
+                ConditionExpression="attribute_exists(PK)",
+                ExpressionAttributeValues=values,
+                ReturnValues="ALL_NEW",
+            )
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                raise NotFoundError("Conversation not found.") from exc
+            raise
+        return self._from_item(response["Attributes"])
 
     async def delete(self, user_id: str, conversation_id: str) -> None:
         def _delete() -> None:

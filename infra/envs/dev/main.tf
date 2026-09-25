@@ -45,7 +45,7 @@ module "stack" {
   env                   = "dev"
   function_package_path = "${var.package_dir}/function.zip"
   layer_package_path    = "${var.package_dir}/layer-arm64.zip"
-  cors_origins          = ["http://localhost:3000"]
+  cors_origins          = [module.web.url, "http://localhost:3000"] # local frontend too
 
   # dev + prod must stay within DynamoDB's always-free 25 RCU / 25 WCU per region.
   dynamodb_read_capacity  = 5
@@ -73,4 +73,29 @@ output "cognito_app_client_id" {
 
 output "openai_key_parameter" {
   value = module.stack.openai_key_parameter
+}
+
+# The web app (S3 + CloudFront). Its URL is the API's allowed CORS origin, and its config.json
+# points the app at this environment's API and Cognito pool.
+module "web" {
+  source                = "../../modules/web"
+  name                  = "documind-dev"
+  bucket_name           = "documind-dev-web-${data.aws_caller_identity.current.account_id}"
+  api_url               = module.stack.api_url
+  cognito_user_pool_id  = module.stack.cognito_user_pool_id
+  cognito_app_client_id = module.stack.cognito_app_client_id
+}
+
+data "aws_caller_identity" "current" {}
+
+output "web_url" {
+  value = module.web.url
+}
+
+output "web_bucket" {
+  value = module.web.bucket
+}
+
+output "web_distribution_id" {
+  value = module.web.distribution_id
 }

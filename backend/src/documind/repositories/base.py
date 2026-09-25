@@ -136,4 +136,15 @@ class ConversationRepository(Protocol):
         self, user_id: str, conversation_id: str, summary: str, summarized_through: int
     ) -> None: ...
 
+    async def update(
+        self,
+        user_id: str,
+        conversation_id: str,
+        *,
+        title: str | None = None,
+        document_ids: Sequence[str] | None = None,
+    ) -> Conversation:
+        """Change the given fields (None = leave unchanged). Raises NotFoundError."""
+        ...
+
     async def delete(self, user_id: str, conversation_id: str) -> None: ...

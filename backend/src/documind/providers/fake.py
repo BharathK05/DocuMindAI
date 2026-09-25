@@ -43,6 +43,9 @@ class FakeLLMProvider:
 
     def _answer(self, messages: Sequence[Message]) -> str:
         prompt = messages[-1].content
+        if messages[0].content.startswith("Write a title"):  # services.titles.TITLE_PROMPT
+            question = prompt.removeprefix("Question: ").split("\n", 1)[0]
+            return " ".join(question.split()[:5]).title()
         match = re.search(r'<source id="1"[^>]*>\s*(.*?)\s*</source>', prompt, re.DOTALL)
         if not match:
             return "I don't know. The provided documents don't contain that information."

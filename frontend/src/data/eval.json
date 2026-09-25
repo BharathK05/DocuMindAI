@@ -1,0 +1,22 @@
+{
+  "source": "backend/evals/results/structured-hybrid-prompt2-rerank.json",
+  "runAt": "2026-09-25T09:51:05+00:00",
+  "questions": 55,
+  "documents": 3,
+  "recallAt5": 0.98,
+  "mrrAt10": 0.877,
+  "correctness": 0.96,
+  "faithfulness": 1,
+  "declinesUnanswerable": 1,
+  "p50LatencyMs": 3031,
+  "p95LatencyMs": 4428,
+  "usdPerQuery": 0.000551,
+  "sample": {
+    "question": "How often must a subscriber reauthenticate at AAL2?",
+    "answer": "At AAL2, the subscriber must reauthenticate at least once every 12 hours during an extended session, regardless of activity, and after 30 minutes or more of inactivity. [1]",
+    "citation": {
+      "file": "NIST.SP.800-63b.pdf",
+      "page": 19
+    }
+  }
+}
