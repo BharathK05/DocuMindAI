@@ -1,0 +1,20 @@
+# Load-test overrides for the local stack (use together with the main docker-compose.yml):
+#   docker compose -f docker-compose.yml -f backend/loadtest/compose.yml up -d --build
+# Fake LLM with OpenAI-like delays and 1536-dim vectors: realistic load, zero token cost.
+# Per-user limits are lifted because every simulated user shares one test account.
+x-loadtest-env: &loadtest-env
+  DOCUMIND_LLM_PROVIDER: fake
+  DOCUMIND_FAKE_LATENCY_MS: "500"  # per call: embedding, reranking, answer (~1.5 s in total)
+  DOCUMIND_FAKE_EMBEDDING_DIMENSIONS: "1536"
+  DOCUMIND_RATE_LIMIT_QUERIES_PER_MINUTE: "100000"
+  DOCUMIND_RATE_LIMIT_UPLOADS_PER_HOUR: "100000"
+  DOCUMIND_DAILY_TOKEN_QUOTA: "1000000000"
+  DOCUMIND_LOG_LEVEL: INFO  # "chat turn" lines carry read units and cache hits
+  DOCUMIND_VECTOR_CACHE_MAX_CHUNKS: ${LOADTEST_CACHE_CHUNKS:-20000}  # 0 = cache off
+
+services:
+  api:
+    command: ["uvicorn", "documind.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment: *loadtest-env
+  worker:
+    environment: *loadtest-env

@@ -79,34 +79,60 @@ class DynamoRateLimiter:
 
 class InMemoryUsageRepository:
     def __init__(self) -> None:
-        self._days: dict[tuple[str, str], DailyUsage] = {}
+        # Keys are ("user", id, day) or ("service", "", day): the two can never collide.
+        self._days: dict[tuple[str, str, str], DailyUsage] = {}
 
-    async def add(self, user_id: str, day: str, usage: TokenUsage, *, expires_at: int) -> None:
-        current = self._days.get((user_id, day), DailyUsage(day))
-        self._days[(user_id, day)] = DailyUsage(
-            day,
+    def _add(self, key: tuple[str, str, str], usage: TokenUsage) -> None:
+        current = self._days.get(key, DailyUsage(key[2]))
+        self._days[key] = DailyUsage(
+            key[2],
             current.input_tokens + usage.input_tokens,
             current.output_tokens + usage.output_tokens,
             current.requests + 1,
         )
 
+    async def add(self, user_id: str, day: str, usage: TokenUsage, *, expires_at: int) -> None:
+        self._add(("user", user_id, day), usage)
+
     async def get(self, user_id: str, day: str) -> DailyUsage:
-        return self._days.get((user_id, day), DailyUsage(day))
+        return self._days.get(("user", user_id, day), DailyUsage(day))
+
+    async def add_service(self, day: str, usage: TokenUsage, *, expires_at: int) -> None:
+        self._add(("service", "", day), usage)
+
+    async def get_service(self, day: str) -> DailyUsage:
+        return self._days.get(("service", "", day), DailyUsage(day))
 
 
 class DynamoUsageRepository:
     def __init__(self, table: DynamoTable) -> None:
         self._t = table
 
-    def _key(self, user_id: str, day: str) -> dict[str, dict[str, str]]:
-        return {"PK": {"S": f"USER#{user_id}"}, "SK": {"S": f"USAGE#{day}"}}
+    @staticmethod
+    def _key(pk: str, day: str) -> dict[str, dict[str, str]]:
+        return {"PK": {"S": pk}, "SK": {"S": f"USAGE#{day}"}}
 
     async def add(self, user_id: str, day: str, usage: TokenUsage, *, expires_at: int) -> None:
+        await self._add(self._key(f"USER#{user_id}", day), usage, expires_at)
+
+    async def get(self, user_id: str, day: str) -> DailyUsage:
+        return await self._get(self._key(f"USER#{user_id}", day), day)
+
+    # "SERVICE" can't clash with a user partition: those always start with "USER#".
+    async def add_service(self, day: str, usage: TokenUsage, *, expires_at: int) -> None:
+        await self._add(self._key("SERVICE", day), usage, expires_at)
+
+    async def get_service(self, day: str) -> DailyUsage:
+        return await self._get(self._key("SERVICE", day), day)
+
+    async def _add(
+        self, key: dict[str, dict[str, str]], usage: TokenUsage, expires_at: int
+    ) -> None:
         # ADD is atomic on the server: concurrent requests never lose each other's tokens.
         await asyncio.to_thread(
             self._t.client.update_item,
             TableName=self._t.name,
-            Key=self._key(user_id, day),
+            Key=key,
             UpdateExpression=(
                 "ADD input_tokens :in, output_tokens :out, requests :one SET expires_at = :exp"
             ),
@@ -118,11 +144,11 @@ class DynamoUsageRepository:
             },
         )
 
-    async def get(self, user_id: str, day: str) -> DailyUsage:
+    async def _get(self, key: dict[str, dict[str, str]], day: str) -> DailyUsage:
         response = await asyncio.to_thread(
             self._t.client.get_item,
             TableName=self._t.name,
-            Key=self._key(user_id, day),
+            Key=key,
             ConsistentRead=True,
         )
         item = response.get("Item")

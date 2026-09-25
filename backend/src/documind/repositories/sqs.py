@@ -5,6 +5,7 @@ import json
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
+from documind.core import tracing
 from documind.domain import IngestJob
 
 if TYPE_CHECKING:
@@ -26,6 +27,18 @@ class SqsJobQueue:
         self.queue_url = queue_url
 
     async def enqueue(self, job: IngestJob) -> None:
-        await asyncio.to_thread(
-            self.client.send_message, QueueUrl=self.queue_url, MessageBody=encode_job(job)
-        )
+        body = encode_job(job)
+        # AWSTraceHeader carries the trace on to the worker Lambda (set only when tracing is on).
+        if trace := tracing.current_header():
+            await asyncio.to_thread(
+                self.client.send_message,
+                QueueUrl=self.queue_url,
+                MessageBody=body,
+                MessageSystemAttributes={
+                    "AWSTraceHeader": {"DataType": "String", "StringValue": trace}
+                },
+            )
+        else:
+            await asyncio.to_thread(
+                self.client.send_message, QueueUrl=self.queue_url, MessageBody=body
+            )

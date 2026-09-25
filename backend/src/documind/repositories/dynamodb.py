@@ -11,8 +11,11 @@ boto3 is synchronous; calls run in a worker thread so they don't block the event
 
 import asyncio
 import logging
+import threading
 import time
+from collections import OrderedDict
 from collections.abc import Collection, Iterator, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -20,6 +23,7 @@ from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from botocore.exceptions import ClientError
 from numpy.typing import NDArray
 
+from documind.core import metrics
 from documind.core.config import RetrievalMode
 from documind.core.errors import ConflictError, NotFoundError
 from documind.domain import (
@@ -86,8 +90,12 @@ class DynamoTable:
     def query_all(self, **kwargs: Any) -> list[dict[str, Any]]:
         paginator = self.client.get_paginator("query")
         items: list[dict[str, Any]] = []
-        for page in paginator.paginate(TableName=self.name, **kwargs):
+        # Queries are where read capacity goes (a document's chunks are ~4 KB each), so every
+        # page reports what it consumed into the current request's stats.
+        pages = paginator.paginate(TableName=self.name, ReturnConsumedCapacity="TOTAL", **kwargs)
+        for page in pages:
             items.extend(page["Items"])
+            metrics.add_read_units(float(page.get("ConsumedCapacity", {}).get("CapacityUnits", 0)))
         return items
 
     def query_prefix(self, pk: str, sk_prefix: str, **kwargs: Any) -> list[dict[str, Any]]:
@@ -198,16 +206,70 @@ class DynamoDocumentRepository:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class DocumentChunks:
+    """One document's chunks, decoded and ready to rank."""
+
+    chunks: list[Chunk]
+    vectors: NDArray[np.float32]  # (len(chunks), dimensions)
+
+
+class ChunkCache:
+    """Least-recently-used cache of decoded chunks per (user, document), capped by chunk count.
+
+    Safe without invalidation because a ready document's chunks never change (re-uploading
+    creates a new document id). Keys include the user id, so tenants never share entries.
+    Loads happen in worker threads, hence the lock.
+    """
+
+    def __init__(self, max_chunks: int) -> None:
+        self._max = max_chunks
+        self._items: OrderedDict[tuple[str, str], DocumentChunks] = OrderedDict()
+        self._size = 0
+        self._lock = threading.Lock()
+
+    def __len__(self) -> int:
+        return self._size
+
+    def get(self, key: tuple[str, str]) -> DocumentChunks | None:
+        with self._lock:
+            value = self._items.get(key)
+            if value is not None:
+                self._items.move_to_end(key)
+            return value
+
+    def put(self, key: tuple[str, str], value: DocumentChunks) -> None:
+        n = len(value.chunks)
+        if n == 0 or n > self._max:
+            return
+        with self._lock:
+            if (old := self._items.pop(key, None)) is not None:
+                self._size -= len(old.chunks)
+            while self._items and self._size + n > self._max:
+                _, evicted = self._items.popitem(last=False)
+                self._size -= len(evicted.chunks)
+            self._items[key] = value
+            self._size += n
+
+    def discard(self, key: tuple[str, str]) -> None:
+        with self._lock:
+            if (old := self._items.pop(key, None)) is not None:
+                self._size -= len(old.chunks)
+
+
 class DynamoVectorStore:
     """Exact in-process vector search over a user's chunks stored in DynamoDB.
 
-    Each query reads the candidate documents' chunks (~4 KB each), so read cost grows linearly
-    with corpus size. Fine for hundreds of documents per user; beyond that, swap this class for
-    pgvector/OpenSearch/S3 Vectors behind the same VectorStore interface.
+    A cold read of a document costs ~0.5 read units per 4 KB of chunks (text + a 3 KB float16
+    vector each), i.e. ~90 units for an 80-page PDF: more than the free tier's 15-25 units per
+    second. The ``ChunkCache`` keeps decoded chunks in the Lambda instance's memory, so repeat
+    questions on the same documents read nothing but a few small items. Beyond a few thousand
+    pages per user, swap this class for pgvector/OpenSearch/S3 Vectors behind VectorStore.
     """
 
-    def __init__(self, table: DynamoTable) -> None:
+    def __init__(self, table: DynamoTable, cache: ChunkCache | None = None) -> None:
         self._t = table
+        self._cache = cache
 
     async def upsert(self, user_id: str, chunks: Sequence[EmbeddedChunk]) -> None:
         # Deterministic keys make re-ingestion idempotent: a retried job overwrites, not duplicates.
@@ -231,6 +293,36 @@ class DynamoVectorStore:
         ]
         await asyncio.to_thread(self._t.batch_write, requests)
 
+    def _read(self, user_id: str, document_id: str) -> DocumentChunks:
+        items = self._t.query_prefix(_pk(user_id), _chunk_prefix(document_id))
+        chunks = [
+            Chunk(
+                document_id=i["document_id"]["S"],
+                index=int(i["idx"]["N"]),
+                page=int(i["page"]["N"]),
+                text=i["text"]["S"],
+                context=i.get("ctx", {}).get("S", ""),
+            )
+            for i in items
+        ]
+        vectors = (
+            np.vstack([decode_vector(i["vec"]["B"]) for i in items])
+            if items
+            else np.empty((0, 0), dtype=np.float32)
+        )
+        return DocumentChunks(chunks, vectors)
+
+    async def _load(self, user_id: str, document_id: str) -> DocumentChunks:
+        key = (user_id, document_id)
+        if self._cache is not None and (cached := self._cache.get(key)) is not None:
+            metrics.add_cache_result(hit=True)
+            return cached
+        loaded = await asyncio.to_thread(self._read, user_id, document_id)
+        if self._cache is not None:
+            metrics.add_cache_result(hit=False)
+            self._cache.put(key, loaded)
+        return loaded
+
     async def search(
         self,
         user_id: str,
@@ -242,28 +334,17 @@ class DynamoVectorStore:
         mode: RetrievalMode = RetrievalMode.DENSE,
         candidates: int = 30,
     ) -> list[ScoredChunk]:
-        per_doc = await asyncio.gather(
-            *(
-                asyncio.to_thread(self._t.query_prefix, _pk(user_id), _chunk_prefix(doc_id))
-                for doc_id in document_ids
-            )
-        )
-        items = [item for doc_items in per_doc for item in doc_items]
-        if not items:
-            return []
-        chunks = [
-            Chunk(
-                document_id=i["document_id"]["S"],
-                index=int(i["idx"]["N"]),
-                page=int(i["page"]["N"]),
-                text=i["text"]["S"],
-                context=i.get("ctx", {}).get("S", ""),
-            )
-            for i in items
+        docs = [
+            d
+            for d in await asyncio.gather(*(self._load(user_id, i) for i in document_ids))
+            if d.chunks
         ]
+        if not docs:
+            return []
+        chunks = [c for d in docs for c in d.chunks]
         ranked = rank(
             [c.search_text for c in chunks],
-            np.vstack([decode_vector(i["vec"]["B"]) for i in items]),
+            np.vstack([d.vectors for d in docs]),
             query,
             query_text,
             top_k=top_k,
@@ -280,3 +361,5 @@ class DynamoVectorStore:
             self._t.batch_write([{"DeleteRequest": {"Key": k}} for k in keys])
 
         await asyncio.to_thread(_delete)
+        if self._cache is not None:
+            self._cache.discard((user_id, document_id))

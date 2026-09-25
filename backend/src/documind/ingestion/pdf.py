@@ -4,12 +4,13 @@ import io
 import logging
 import re
 from dataclasses import dataclass
-
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from typing import TYPE_CHECKING
 
 from documind.core.errors import InvalidDocumentError
 from documind.domain import Page
+
+if TYPE_CHECKING:
+    from pypdf import PdfReader
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,9 @@ class ParsedPdf:
     pages: list[Page]
 
 
-def _title(reader: PdfReader) -> str | None:
+def _title(reader: "PdfReader") -> str | None:
+    from pypdf.errors import PdfReadError
+
     try:
         title = reader.metadata.title if reader.metadata else None
     except PdfReadError:
@@ -37,6 +40,11 @@ def _title(reader: PdfReader) -> str | None:
 
 
 def parse_pdf(data: bytes, *, max_pages: int) -> ParsedPdf:
+    # Imported here, not at module level: only the worker parses PDFs, and pypdf adds ~0.15 s
+    # to every API cold start otherwise.
+    from pypdf import PdfReader
+    from pypdf.errors import PdfReadError
+
     # The PDF spec allows junk before the header, but it must appear within the first 1 KB.
     if b"%PDF-" not in data[:1024]:
         raise InvalidDocumentError("The file is not a PDF.")

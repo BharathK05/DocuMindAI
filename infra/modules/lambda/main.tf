@@ -45,6 +45,12 @@ variable "log_retention_days" {
   default = 7
 }
 
+variable "tracing_enabled" {
+  type        = bool
+  default     = true
+  description = "X-Ray active tracing (free up to 100k traces a month; sampled at ~1/s + 5%)."
+}
+
 data "aws_iam_policy_document" "assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -79,6 +85,22 @@ resource "aws_iam_role_policy" "logs" {
   policy = data.aws_iam_policy_document.logs.json
 }
 
+# Lambda's own trace segments, plus the app's spans (documind.core.tracing). X-Ray's write
+# APIs don't support resource-level permissions, hence "*".
+data "aws_iam_policy_document" "tracing" {
+  statement {
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "tracing" {
+  count  = var.tracing_enabled ? 1 : 0
+  name   = "tracing"
+  role   = aws_iam_role.this.id
+  policy = data.aws_iam_policy_document.tracing.json
+}
+
 resource "aws_iam_role_policy" "app" {
   name   = "app"
   role   = aws_iam_role.this.id
@@ -102,12 +124,16 @@ resource "aws_lambda_function" "this" {
     variables = var.environment
   }
 
+  tracing_config {
+    mode = var.tracing_enabled ? "Active" : "PassThrough"
+  }
+
   logging_config {
     log_format = "Text" # the app already writes one JSON object per line
     log_group  = aws_cloudwatch_log_group.this.name
   }
 
-  depends_on = [aws_iam_role_policy.logs, aws_iam_role_policy.app]
+  depends_on = [aws_iam_role_policy.logs, aws_iam_role_policy.app, aws_iam_role_policy.tracing]
 }
 
 output "function_name" {

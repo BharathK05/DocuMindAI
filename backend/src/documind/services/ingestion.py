@@ -10,6 +10,7 @@ import logging
 import time
 import uuid
 
+from documind.core import metrics
 from documind.core.config import ChunkingStrategy, Settings
 from documind.core.errors import ConflictError, InvalidDocumentError, NotFoundError
 from documind.domain import (
@@ -110,14 +111,15 @@ class IngestionService:
             document.user_id,
             [EmbeddedChunk(c, v) for c, v in zip(chunks, vectors, strict=True)],
         )
-        logger.info(
+        metrics.emit(
+            logger,
             "document indexed",
-            extra={
-                "document_id": document.document_id,
-                "pages": len(pages),
-                "chunks": len(chunks),
-                "duration_ms": round((time.perf_counter() - started) * 1000),
-            },
+            env=self._settings.env,
+            enabled=self._settings.metrics_enabled,
+            metrics={"IngestSeconds": (round(time.perf_counter() - started, 2), "Seconds")},
+            document_id=document.document_id,
+            pages=len(pages),
+            chunks=len(chunks),
         )
         return len(pages), len(chunks)
 

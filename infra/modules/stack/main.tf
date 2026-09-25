@@ -37,6 +37,9 @@ locals {
     DOCUMIND_OPENAI_API_KEY_SSM_PARAMETER = local.openai_key_parameter
     DOCUMIND_CORS_ORIGINS                 = jsonencode(var.cors_origins)
     DOCUMIND_DAILY_TOKEN_QUOTA            = tostring(var.daily_token_quota)
+    DOCUMIND_GLOBAL_DAILY_TOKEN_QUOTA     = tostring(var.global_daily_token_quota)
+    DOCUMIND_METRICS_ENABLED              = tostring(var.metrics_enabled)
+    DOCUMIND_TRACING_ENABLED              = tostring(var.tracing_enabled)
     TIKTOKEN_CACHE_DIR                    = "/opt/tiktoken_cache" # bundled in the layer
   }
 }
@@ -150,6 +153,7 @@ module "api" {
   memory_mb       = var.api_memory_mb
   timeout_seconds = 60
   policy_json     = data.aws_iam_policy_document.api.json
+  tracing_enabled = var.tracing_enabled
   environment = merge(local.common_env, {
     AWS_LAMBDA_EXEC_WRAPPER        = "/opt/bootstrap"
     AWS_LWA_INVOKE_MODE            = "response_stream"
@@ -172,6 +176,7 @@ module "worker" {
   memory_mb       = var.worker_memory_mb
   timeout_seconds = local.worker_timeout
   policy_json     = data.aws_iam_policy_document.worker.json
+  tracing_enabled = var.tracing_enabled
   environment     = local.common_env
 }
 
@@ -215,10 +220,15 @@ resource "aws_lambda_permission" "url_invoke_function" {
 }
 
 module "monitoring" {
-  count             = var.alarms_enabled ? 1 : 0
-  source            = "../monitoring"
-  name              = local.prefix
-  alert_email       = var.alert_email
-  api_function_name = module.api.function_name
-  dlq_name          = module.queue.dlq_name
+  count                = var.alarms_enabled ? 1 : 0
+  source               = "../monitoring"
+  name                 = local.prefix
+  env                  = var.env
+  alert_email          = var.alert_email
+  api_function_name    = module.api.function_name
+  worker_function_name = module.worker.function_name
+  table_name           = module.dynamodb.name
+  queue_name           = module.queue.name
+  dlq_name             = module.queue.dlq_name
+  daily_cost_alarm_usd = var.daily_cost_alarm_usd
 }

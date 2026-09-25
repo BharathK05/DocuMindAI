@@ -7,6 +7,7 @@ record. Locally, ``python -m documind.worker`` long-polls the queue and does the
 import asyncio
 import logging
 
+from documind.core import metrics
 from documind.core.config import Backend, get_settings
 from documind.core.container import Container, build_container
 from documind.core.logging import configure_logging
@@ -17,11 +18,12 @@ logger = logging.getLogger(__name__)
 
 async def handle_message(container: Container, body: str, receive_count: int) -> None:
     """Process one queue message. Raising leaves the message on the queue for a retry."""
-    await container.ingestion_service.process(
-        decode_job(body),
-        attempt=receive_count,
-        max_attempts=container.settings.sqs_max_receive_count,
-    )
+    with metrics.track_request():
+        await container.ingestion_service.process(
+            decode_job(body),
+            attempt=receive_count,
+            max_attempts=container.settings.sqs_max_receive_count,
+        )
 
 
 async def poll_once(container: Container, queue: SqsJobQueue, wait_seconds: int = 20) -> int:

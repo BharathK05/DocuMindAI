@@ -32,8 +32,11 @@ variable "dynamodb_write_capacity" {
 }
 
 variable "api_memory_mb" {
-  type    = number
-  default = 1024
+  type = number
+  # Lambda's CPU share grows with memory (1,769 MB = one full vCPU), and a cold start is mostly
+  # CPU-bound Python imports. 2,048 MB still leaves ~50k questions a month inside the free
+  # 400k GB-seconds (at ~4 s per streamed answer).
+  default = 2048
 }
 
 variable "worker_memory_mb" {
@@ -70,4 +73,27 @@ variable "alarms_enabled" {
 variable "alert_email" {
   type    = string
   default = ""
+}
+
+variable "global_daily_token_quota" {
+  type        = number
+  default     = 0
+  description = "Tokens per UTC day for all users together (0 = no cap). Bounds the OpenAI bill."
+}
+
+variable "metrics_enabled" {
+  type        = bool
+  default     = false
+  description = "Custom CloudWatch metrics (5 per environment; 10 are free per account)."
+}
+
+variable "tracing_enabled" {
+  type    = bool
+  default = true
+}
+
+variable "daily_cost_alarm_usd" {
+  type        = number
+  default     = 0.5
+  description = "Email when the day's OpenAI spend (from the CostUSD metric) passes this."
 }

@@ -65,6 +65,22 @@ class Settings(BaseSettings):
     context_summarize_at: float = 0.9  # summarise older turns above this share of the budget
     context_keep_recent_messages: int = 4  # never summarised away
     upload_ttl_seconds: int = 24 * 3600  # abandoned "awaiting_upload" records expire after this
+    # All users together, per UTC day (0 = no cap). Bounds the OpenAI bill even if many new
+    # accounts each use their own daily quota.
+    global_daily_token_quota: int = 0
+
+    # --- Observability -------------------------------------------------------------------------
+    # CloudWatch metrics written as structured log lines (Embedded Metric Format): no API calls,
+    # no agent. Each metric name counts toward the 10 free custom metrics, so prod only.
+    metrics_enabled: bool = False
+    # AWS X-Ray subsegments for DynamoDB/S3/SQS/OpenAI calls (needs Lambda active tracing).
+    tracing_enabled: bool = False
+
+    # --- Performance -------------------------------------------------------------------------
+    # Decoded chunks and vectors kept in the Lambda instance's memory between requests.
+    # Chunks never change once a document is ready, so no invalidation is needed; the cache
+    # just saves re-reading (and paying read capacity for) the same items. 0 turns it off.
+    vector_cache_max_chunks: int = 20_000
 
     # --- Infrastructure wiring -------------------------------------------------------------
     backend: Backend = Backend.MEMORY
@@ -102,6 +118,10 @@ class Settings(BaseSettings):
     chat_input_usd_per_mtok: float = 0.10
     chat_output_usd_per_mtok: float = 0.50
     embedding_usd_per_mtok: float = 0.02
+    # Fake provider only: per-call delay and vector size, so load tests behave like OpenAI
+    # (network waits, 1536-dim vectors) without spending tokens.
+    fake_latency_ms: int = 0
+    fake_embedding_dimensions: int = 256
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 3  # SDK retries 408/409/429/5xx with exponential backoff + jitter
 

@@ -6,9 +6,11 @@ conversations and context management.
 """
 
 import logging
+import time
 from collections.abc import AsyncGenerator, Sequence
 from dataclasses import dataclass, field
 
+from documind.core import metrics
 from documind.core.config import Settings
 from documind.core.errors import InvalidInputError
 from documind.domain import Citation, Conversation, Message, TokenUsage
@@ -18,7 +20,7 @@ from documind.services.context import ContextManager, TokenCounter
 from documind.services.conversations import DEFAULT_TITLE, ConversationService
 from documind.services.query import Answer, DoneEvent, QueryService, Retrieval, SourcesEvent
 from documind.services.titles import TitleGenerator
-from documind.services.usage import AccountUsage, UsageService
+from documind.services.usage import AccountUsage, UsageService, cost_usd
 
 logger = logging.getLogger(__name__)
 
@@ -104,10 +106,12 @@ class ChatService:
         history: Sequence[Message] = (),
         document_ids: Sequence[str] | None = None,
     ) -> ChatResult:
+        started = time.perf_counter()
         turn = await self._prepare(user_id, question, conversation_id, history, document_ids)
         answer = await self._query.generate(turn.question, turn.history, turn.retrieval)
         usage = answer.usage + turn.extra_usage
         await self._usage.record(user_id, usage)
+        self._report(started, started, usage, streamed=False)
         await self._save(user_id, turn, answer.text, answer.citations)
         title = await self._maybe_title(user_id, turn, answer.text)
         return ChatResult(
@@ -127,9 +131,11 @@ class ChatService:
         history: Sequence[Message] = (),
         document_ids: Sequence[str] | None = None,
     ) -> AsyncGenerator[ChatEvent]:
+        started = time.perf_counter()
         turn = await self._prepare(user_id, question, conversation_id, history, document_ids)
         parts: list[str] = []
         citations: list[Citation] = []
+        first_token: float | None = None
         finished = False
         try:
             async for event in self._query.stream_from(turn.question, turn.history, turn.retrieval):
@@ -137,11 +143,13 @@ class ChatService:
                     citations = event.citations
                     yield event
                 elif isinstance(event, TextDelta):
+                    first_token = first_token or time.perf_counter()
                     parts.append(event.text)
                     yield event
                 elif isinstance(event, DoneEvent):
                     usage = event.usage + turn.extra_usage
                     await self._usage.record(user_id, usage)
+                    self._report(started, first_token, usage, streamed=True)
                     finished = True
                     await self._save(user_id, turn, "".join(parts), citations)
                     yield ChatDone(usage, turn.context, await self._usage.account(user_id))
@@ -214,6 +222,33 @@ class ChatService:
             retrieval,
             ContextUsage(fitted.tokens, self._context.limit, fitted.notice),
             fitted.usage,
+        )
+
+    def _report(
+        self, started: float, first_token: float | None, usage: TokenUsage, *, streamed: bool
+    ) -> None:
+        """One log line per answered question; in prod also CloudWatch metrics (dashboard)."""
+        now = time.perf_counter()
+        ttft = (first_token or now) - started
+        stats = metrics.current() or metrics.RequestStats()
+        metrics.emit(
+            logger,
+            "chat turn",
+            env=self._settings.env,
+            enabled=self._settings.metrics_enabled,
+            metrics={
+                # Streamed: when the first words appear. Not streamed: the whole answer.
+                "TimeToFirstTokenMs": (round(ttft * 1000), "Milliseconds"),
+                "LatencyMs": (round((now - started) * 1000), "Milliseconds"),
+                "CostUSD": (round(cost_usd(usage, self._settings), 6), "None"),
+                "ReadUnits": (round(stats.dynamo_read_units, 1), "Count"),
+            },
+            streamed=streamed,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            dynamo_calls=stats.dynamo_calls,
+            cache_hits=stats.cache_hits,
+            cache_misses=stats.cache_misses,
         )
 
     async def _maybe_title(self, user_id: str, turn: _Turn, answer: str) -> str | None:

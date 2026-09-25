@@ -29,3 +29,7 @@ output "api_function_name" {
 output "worker_function_name" {
   value = module.worker.function_name
 }
+
+output "dashboard_url" {
+  value = var.alarms_enabled ? module.monitoring[0].dashboard_url : null
+}

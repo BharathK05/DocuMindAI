@@ -19,3 +19,8 @@ chroma_db/
 # Coverage output
 .coverage
 coverage.xml
+
+# Locust keeps only the summary CSVs
+backend/loadtest/results/*_exceptions.csv
+backend/loadtest/results/*_failures.csv
+backend/loadtest/results/*_stats_history.csv

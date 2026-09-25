@@ -14,6 +14,9 @@ import asyncio
 import logging
 from typing import Any
 
+from opentelemetry.trace import SpanKind
+
+from documind.core import tracing
 from documind.core.config import get_settings
 from documind.core.container import Container, build_container
 from documind.core.logging import configure_logging
@@ -30,6 +33,9 @@ def _get_container() -> Container:
     if _container is None:
         settings = get_settings()
         configure_logging(settings.log_level)
+        tracing.setup(
+            "documind-worker", enabled=settings.tracing_enabled, region=settings.aws_region
+        )
         _container = build_container(settings)
     return _container
 
@@ -39,9 +45,16 @@ async def _process(event: dict[str, Any]) -> dict[str, Any]:
     failures: list[dict[str, str]] = []
     for record in event.get("Records", []):
         message_id = record["messageId"]
-        receive_count = int(record.get("attributes", {}).get("ApproximateReceiveCount", "1"))
+        attributes = record.get("attributes", {})
+        receive_count = int(attributes.get("ApproximateReceiveCount", "1"))
+        # Continue the API's trace (carried on the message), else this invocation's own.
+        parent = tracing.context_from_header(attributes.get("AWSTraceHeader"))
         try:
-            await handle_message(container, record["body"], receive_count)
+            with (
+                tracing.attached(parent or tracing.lambda_context()),
+                tracing.span("ingest document", kind=SpanKind.CONSUMER, message_id=message_id),
+            ):
+                await handle_message(container, record["body"], receive_count)
         except Exception:
             logger.exception(
                 "record failed", extra={"message_id": message_id, "receive_count": receive_count}
@@ -51,4 +64,7 @@ async def _process(event: dict[str, Any]) -> dict[str, Any]:
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    return _loop.run_until_complete(_process(event))
+    try:
+        return _loop.run_until_complete(_process(event))
+    finally:
+        tracing.flush()  # Lambda freezes the process after returning; export spans first

@@ -65,6 +65,8 @@ data "aws_iam_policy_document" "deploy" {
     actions = [
       "cloudfront:CreateFunction", "cloudfront:DescribeFunction", "cloudfront:GetFunction",
       "cloudfront:UpdateFunction", "cloudfront:PublishFunction", "cloudfront:DeleteFunction",
+      # the provider's default_tags are applied to functions too
+      "cloudfront:TagResource", "cloudfront:UntagResource", "cloudfront:ListTagsForResource",
     ]
     resources = ["arn:aws:cloudfront::${local.account_id}:function/documind-*"]
   }
@@ -172,8 +174,14 @@ data "aws_iam_policy_document" "deploy" {
   }
 
   statement {
+    sid       = "Dashboards"
+    actions   = ["cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards"]
+    resources = ["arn:aws:cloudwatch::${local.account_id}:dashboard/documind-*"]
+  }
+
+  statement {
     sid       = "Identity"
-    actions   = ["sts:GetCallerIdentity", "cloudwatch:DescribeAlarms"]
+    actions   = ["sts:GetCallerIdentity", "cloudwatch:DescribeAlarms", "cloudwatch:ListDashboards"]
     resources = ["*"]
   }
 }

@@ -63,6 +63,18 @@ async def test_embed_batches_by_token_budget() -> None:
     assert [len(c) for c in stub.calls] == [2, 2]
 
 
+async def test_short_inputs_skip_the_tokenizer() -> None:
+    stub = StubEmbeddings()
+    provider = embedder(stub)
+    await provider.embed(["How often must a subscriber reauthenticate at AAL2?"])
+    assert "_encoding" not in provider.__dict__  # never loaded: faster API cold starts
+    assert len(stub.calls) == 1
+
+    long_text = "word " * 50  # 250 bytes > 20 tokens allowed: must really count and truncate
+    await embedder(stub, max_input_tokens=20).embed([long_text])
+    assert len(stub.calls[-1][0].split()) == 20
+
+
 async def test_embed_empty_input_makes_no_calls() -> None:
     stub = StubEmbeddings()
     assert (await embedder(stub).embed([])).shape == (0, 4)
