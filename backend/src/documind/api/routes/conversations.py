@@ -9,6 +9,7 @@ from documind.api.schemas import (
     ConversationOut,
     CreateConversationRequest,
     MessageOut,
+    RenameConversationRequest,
 )
 
 router = APIRouter(prefix="/v1/conversations", tags=["conversations"])
@@ -21,7 +22,8 @@ async def create_conversation(
     body: CreateConversationRequest, user_id: UserIdDep, c: ContainerDep
 ) -> ConversationOut:
     """Start a conversation; pass its id as ``conversation_id`` to ``/v1/query``."""
-    return ConversationOut.from_domain(await c.conversation_service.create(user_id, body.title))
+    conversation = await c.conversation_service.create(user_id, body.title, body.document_ids)
+    return ConversationOut.from_domain(conversation)
 
 
 @router.get("")
@@ -39,6 +41,18 @@ async def get_conversation(
     return ConversationDetail(
         conversation=ConversationOut.from_domain(conversation),
         messages=[MessageOut.from_domain(m) for m in messages],
+    )
+
+
+@router.patch("/{conversation_id}")
+async def rename_conversation(
+    conversation_id: ConversationId,
+    body: RenameConversationRequest,
+    user_id: UserIdDep,
+    c: ContainerDep,
+) -> ConversationOut:
+    return ConversationOut.from_domain(
+        await c.conversation_service.rename(user_id, conversation_id, body.title)
     )
 
 

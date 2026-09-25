@@ -15,8 +15,9 @@ from documind.domain import Citation, Conversation, Message, TokenUsage
 from documind.providers.base import TextDelta
 from documind.repositories.base import ConversationRepository, NewMessage, RateLimiter
 from documind.services.context import ContextManager, TokenCounter
-from documind.services.conversations import ConversationService
+from documind.services.conversations import DEFAULT_TITLE, ConversationService
 from documind.services.query import Answer, DoneEvent, QueryService, Retrieval, SourcesEvent
+from documind.services.titles import TitleGenerator
 from documind.services.usage import AccountUsage, UsageService
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class ChatResult:
     context: ContextUsage
     account: AccountUsage
     conversation_id: str | None
+    title: str | None = None  # set when this turn gave the conversation its title
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +52,14 @@ class ChatDone:
     account: AccountUsage
 
 
-ChatEvent = SourcesEvent | TextDelta | ChatDone
+@dataclass(frozen=True, slots=True)
+class ConversationTitled:
+    """Sent after ``done`` on a conversation's first answer, for the sidebar."""
+
+    title: str
+
+
+ChatEvent = SourcesEvent | TextDelta | ChatDone | ConversationTitled
 
 
 @dataclass
@@ -74,6 +83,7 @@ class ChatService:
         counter: TokenCounter,
         usage: UsageService,
         limiter: RateLimiter,
+        titles: TitleGenerator,
     ) -> None:
         self._settings = settings
         self._query = query
@@ -83,6 +93,7 @@ class ChatService:
         self._counter = counter
         self._usage = usage
         self._limiter = limiter
+        self._titles = titles
 
     async def ask(
         self,
@@ -98,11 +109,13 @@ class ChatService:
         usage = answer.usage + turn.extra_usage
         await self._usage.record(user_id, usage)
         await self._save(user_id, turn, answer.text, answer.citations)
+        title = await self._maybe_title(user_id, turn, answer.text)
         return ChatResult(
             answer=Answer(answer.text, answer.citations, usage),
             context=turn.context,
             account=await self._usage.account(user_id),
             conversation_id=conversation_id,
+            title=title,
         )
 
     async def ask_stream(
@@ -132,6 +145,8 @@ class ChatService:
                     finished = True
                     await self._save(user_id, turn, "".join(parts), citations)
                     yield ChatDone(usage, turn.context, await self._usage.account(user_id))
+                    if title := await self._maybe_title(user_id, turn, "".join(parts)):
+                        yield ConversationTitled(title)
         finally:
             if not finished:
                 # Client disconnected or the provider failed mid-answer. OpenAI still bills the
@@ -168,6 +183,12 @@ class ChatService:
         conversation = (
             await self._conversations.get(user_id, conversation_id) if conversation_id else None
         )
+        if conversation is not None:
+            # Attachments stick to the conversation, like files dropped into a chat: later
+            # questions search them without the client resending the ids.
+            if document_ids:
+                conversation = await self._conversations.attach(conversation, document_ids)
+            document_ids = conversation.document_ids or None
         retrieval = await self._query.retrieve(user_id, question, document_ids)
         question = question.strip()
 
@@ -194,6 +215,17 @@ class ChatService:
             ContextUsage(fitted.tokens, self._context.limit, fitted.notice),
             fitted.usage,
         )
+
+    async def _maybe_title(self, user_id: str, turn: _Turn, answer: str) -> str | None:
+        """Name an untitled conversation from its first exchange (charged to the user)."""
+        if turn.conversation is None or turn.conversation.title != DEFAULT_TITLE:
+            return None
+        title, usage = await self._titles.generate(turn.question, answer)
+        await self._usage.record(user_id, usage)
+        await self._conversation_repo.update(
+            user_id, turn.conversation.conversation_id, title=title
+        )
+        return title
 
     async def _save(
         self, user_id: str, turn: _Turn, answer: str, citations: list[Citation]

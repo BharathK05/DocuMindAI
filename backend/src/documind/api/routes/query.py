@@ -16,7 +16,7 @@ from documind.api.schemas import (
 )
 from documind.core.errors import DocumindError
 from documind.providers.base import TextDelta
-from documind.services.chat import ChatDone, ChatEvent
+from documind.services.chat import ChatDone, ChatEvent, ConversationTitled
 from documind.services.query import SourcesEvent
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ async def query(body: QueryRequest, user_id: UserIdDep, c: ContainerDep) -> Quer
         context=ContextOut.from_domain(result.context),
         account=AccountOut.from_domain(result.account),
         conversation_id=result.conversation_id,
+        title=result.title,
     )
 
 
@@ -62,6 +63,8 @@ def _encode(event: ChatEvent) -> str:
                     "account": AccountOut.from_domain(account).model_dump(mode="json"),
                 },
             )
+        case ConversationTitled(title):
+            return _sse("title", {"title": title})
 
 
 @router.post("/stream", response_class=StreamingResponse)
@@ -69,7 +72,8 @@ async def query_stream(
     body: QueryRequest, user_id: UserIdDep, c: ContainerDep
 ) -> StreamingResponse:
     """Server-Sent Events: one ``sources`` event, many ``token`` events, then ``done`` with
-    token usage, context-window and daily-quota figures (or ``error`` if the model fails)."""
+    token usage, context-window and daily-quota figures (or ``error`` if the model fails).
+    A conversation's first answer is followed by a ``title`` event naming the conversation."""
     events = c.chat_service.ask_stream(
         user_id,
         body.question,

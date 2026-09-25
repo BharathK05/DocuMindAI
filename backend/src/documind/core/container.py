@@ -50,6 +50,7 @@ from documind.services.documents import DocumentService
 from documind.services.ingestion import IngestionService
 from documind.services.query import QueryService
 from documind.services.rerank import LLMReranker
+from documind.services.titles import TitleGenerator
 from documind.services.usage import UsageService
 
 _RETRIES: Any = {"max_attempts": 5, "mode": "adaptive"}
@@ -210,5 +211,6 @@ def build_container(settings: Settings) -> Container:
             counter,
             usage,
             st.limiter,
+            TitleGenerator(rerank_llm),  # low-effort model: a title needs no reasoning
         ),
     )

@@ -148,6 +148,8 @@ class Conversation(BaseModel):
     conversation_id: str
     title: str
     message_count: int = 0
+    # PDFs attached to this chat; retrieval is limited to them (empty = all the user's PDFs).
+    document_ids: list[str] = Field(default_factory=list)
     # Messages [0, summarized_through) are represented by ``summary`` in the model's context.
     summary: str | None = None
     summarized_through: int = 0

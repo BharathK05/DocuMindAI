@@ -66,11 +66,12 @@ Every endpoint except `/health` requires `Authorization: Bearer <token>`:
 | `POST` | `/v1/documents/{id}/complete` | Confirm the upload and queue ingestion |
 | `GET` | `/v1/documents` / `/v1/documents/{id}` | List documents / check ingestion status |
 | `DELETE` | `/v1/documents/{id}` | Delete a document and all its chunks |
-| `POST` | `/v1/conversations` | Start a conversation (the server stores and manages its history) |
+| `POST` | `/v1/conversations` | Start a conversation, optionally with attached PDFs (the server stores and manages its history) |
 | `GET` | `/v1/conversations` / `/v1/conversations/{id}` | List conversations / read one, with messages and citations |
+| `PATCH` | `/v1/conversations/{id}` | Rename a conversation |
 | `DELETE` | `/v1/conversations/{id}` | Delete a conversation |
 | `POST` | `/v1/query` | Answer with citations, plus token usage, context-window and daily-quota figures |
-| `POST` | `/v1/query/stream` | Same, streamed as SSE: `sources` → `token`… → `done` (the `done` event carries the usage figures) |
+| `POST` | `/v1/query/stream` | Same, streamed as SSE: `sources` → `token`… → `done` (the `done` event carries the usage figures), then `title` on a conversation's first answer |
 | `GET` | `/v1/usage?conversation_id=` | Figures for the two usage bars: context window and daily quota |
 
 To walk through the whole flow against the local stack:

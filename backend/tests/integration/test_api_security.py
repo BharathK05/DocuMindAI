@@ -170,6 +170,88 @@ class TestConversations:
             detail = (await client.get(f"/v1/conversations/{cid}", headers=alice)).json()
             assert detail["conversation"]["message_count"] == 2
 
+    async def test_first_answer_names_the_conversation(
+        self, container: Container, sample_pdf: bytes
+    ) -> None:
+        alice = bearer("alice")
+        async with api(container) as client:
+            await upload(client, container, sample_pdf, "alice")
+            cid = (await client.post("/v1/conversations", json={}, headers=alice)).json()[
+                "conversation_id"
+            ]
+            question = {"question": "How many employees work there?", "conversation_id": cid}
+            r = await client.post("/v1/query/stream", json=question, headers=alice)
+            events = [b.split("\n")[0] for b in r.text.strip().split("\n\n")]
+            assert events[-2:] == ["event: done", "event: title"]  # title after done
+            title = json.loads(r.text.strip().split("\n\n")[-1].split("data: ", 1)[1])["title"]
+            assert title == "How Many Employees Work There?"
+
+            listed = (await client.get("/v1/conversations", headers=alice)).json()
+            assert listed["conversations"][0]["title"] == title
+            again = await client.post("/v1/query/stream", json=question, headers=alice)
+            assert "event: title" not in again.text  # named once only
+
+            renamed = await client.patch(
+                f"/v1/conversations/{cid}", json={"title": "  Staff   count "}, headers=alice
+            )
+            assert renamed.json()["title"] == "Staff count"
+            assert (
+                await client.patch(f"/v1/conversations/{cid}", json={"title": " "}, headers=alice)
+            ).status_code == 422
+            assert (
+                await client.patch(
+                    f"/v1/conversations/{cid}", json={"title": "mine"}, headers=bearer("bob")
+                )
+            ).status_code == 404
+
+            plain = await client.post("/v1/conversations", json={}, headers=alice)
+            body = (
+                await client.post(
+                    "/v1/query",
+                    json={
+                        "question": "Where is HQ?",
+                        "conversation_id": plain.json()["conversation_id"],
+                    },
+                    headers=alice,
+                )
+            ).json()
+            assert body["title"] == "Where Is Hq?"
+
+    async def test_attached_documents_scope_the_conversation(
+        self, container: Container, sample_pdf: bytes
+    ) -> None:
+        alice = bearer("alice")
+        async with api(container) as client:
+            first = await upload(client, container, sample_pdf, "alice")
+            second = await upload(client, container, sample_pdf, "alice")
+            conv = await client.post(
+                "/v1/conversations", json={"document_ids": [second]}, headers=alice
+            )
+            cid = conv.json()["conversation_id"]
+            assert conv.json()["document_ids"] == [second]
+
+            async def cited(**extra: Any) -> set[str]:
+                r = await client.post(
+                    "/v1/query",
+                    json={"question": "How many employees?", "conversation_id": cid, **extra},
+                    headers=alice,
+                )
+                assert r.status_code == 200, r.text
+                return {c["document_id"] for c in r.json()["citations"]}
+
+            assert await cited() == {second}  # only the attached PDF is searched
+            assert await cited(document_ids=[first]) <= {first, second}
+            detail = (await client.get(f"/v1/conversations/{cid}", headers=alice)).json()
+            assert detail["conversation"]["document_ids"] == [second, first]  # attach order
+
+            too_many = [f"{i:032x}" for i in range(50)]
+            r = await client.post(
+                "/v1/query",
+                json={"question": "hq?", "conversation_id": cid, "document_ids": too_many},
+                headers=alice,
+            )
+            assert r.status_code == 422
+
     async def test_conversation_and_client_history_are_mutually_exclusive(
         self, container: Container
     ) -> None:

@@ -223,6 +223,16 @@ async def test_dynamo_conversations(aws_settings: Settings) -> None:
     with pytest.raises(NotFoundError):
         await repo.append("u2", cid, [NewMessage("user", "x")])
 
+    renamed = await repo.update("u1", cid, title="CSF tiers", document_ids=["d1", "d2"])
+    assert (renamed.title, renamed.document_ids, renamed.message_count) == (
+        "CSF tiers",
+        ["d1", "d2"],
+        4,
+    )
+    assert (await repo.update("u1", cid, document_ids=[])).title == "CSF tiers"
+    with pytest.raises(NotFoundError):
+        await repo.update("u2", cid, title="x")
+
     await repo.delete("u1", cid)
     assert await repo.get("u1", cid) is None
     assert await repo.messages("u1", cid) == []
