@@ -11,7 +11,14 @@ A serverless RAG system on the AWS free tier:
 - **Logins:** Cognito.
 - **Infrastructure:** Terraform, deployed by GitHub Actions through OIDC.
 
-The web frontend (Next.js) is next on the roadmap. See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, and [infra/README.md](infra/README.md) for the deployment.
+- **Web app:** Next.js static site on S3 + CloudFront, with a landing page and a chat app.
+  - Chats are named automatically from the first answer.
+  - PDFs are attached in the composer.
+  - Answers stream in with inline page citations.
+  - The header shows context-window and daily-quota bars.
+  - See [frontend/README.md](frontend/README.md).
+
+See [docs/SPEC.md](docs/SPEC.md) for the plan, [docs/evaluation.md](docs/evaluation.md) for measured quality, and [infra/README.md](infra/README.md) for the deployment.
 
 ## How it works
 1. The client asks the API for a presigned URL and uploads the PDF **directly to S3**.
@@ -41,7 +48,13 @@ docker compose up --build              # API → http://localhost:8000/docs
 The compose stack runs DynamoDB Local and [moto](https://github.com/getmoto/moto) (S3 + SQS),
 so local development costs nothing and needs no AWS account.
 
-**Without Docker** (in-memory storage; data resets on restart):
+Then start the web app at http://localhost:3000 and sign in with a dev token (see below):
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+**Without Docker** (in-memory storage; data resets on restart; browser uploads need the Docker stack):
 
 ```bash
 python -m venv .venv && .venv/Scripts/activate      # macOS/Linux: source .venv/bin/activate

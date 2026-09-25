@@ -10,6 +10,7 @@ infra/
 │   ├── sqs/        ingestion queue + dead-letter queue
 │   ├── lambda/     function + least-privilege role + 7-day log group
 │   ├── cognito/    user pool + public app client
+│   ├── web/        web app: private S3 bucket + CloudFront (HTTPS, security headers, config.json)
 │   └── monitoring/ 3 CloudWatch alarms → SNS email (prod only)
 └── envs/
     ├── dev/        small capacity, no deletion protection, CLI password login allowed
@@ -24,6 +25,7 @@ infra/
 | Lambda arm64, SQS `maximum_concurrency = 2`, account concurrency limit of 10 | A spike or bug can't fan out |
 | Logs retained 7 days | Stay within the 5 GB CloudWatch Logs free tier |
 | `documind-monthly-1usd` and `documind-zero-spend` budgets | Email on the first cent billed |
+| Web app on CloudFront `PriceClass_100`, a few MB in S3 | Within CloudFront's always-free 1 TB and 10M requests a month. Optionally switch the distribution to the **Free flat-rate plan** in the CloudFront console (no overage charges at all; Terraform ignores the web ACL it attaches) |
 | OpenAI key in an SSM SecureString **not managed by Terraform** | A managed parameter's value would be copied into the state file |
 
 ## One-time bootstrap (administrator, from a laptop)
@@ -53,7 +55,7 @@ cd infra/envs/dev && terraform init && terraform plan && terraform apply
 
 ## Day-to-day
 - **Pull request:** `.github/workflows/deploy.yml` posts a `terraform plan` for dev and prod as a PR comment, using a read-only OIDC role.
-- **Merge to `main`:** dev is applied and smoke-tested, then prod waits for a reviewer to approve the `production` environment in GitHub.
+- **Merge to `main`:** dev is applied and smoke-tested, then prod waits for a reviewer to approve the `production` environment in GitHub. After each apply, the web app is synced to its bucket and CloudFront is invalidated (`frontend/scripts/publish.sh`).
 - **Repository settings** (`Settings → Secrets and variables → Actions → Variables`):
   - `AWS_PLAN_ROLE_ARN`
   - `AWS_DEPLOY_ROLE_ARN`
