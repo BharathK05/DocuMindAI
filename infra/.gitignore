@@ -1,0 +1,9 @@
+# Terraform working files and local state never go to git.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+# Per-operator values (e.g. alert email); see *.tfvars.example
+*.auto.tfvars
+terraform.tfvars

@@ -3,9 +3,19 @@
 .venv/
 venv/
 
-# Python caches
+# Python caches and build output
 __pycache__/
 *.pyc
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
 
-# Database
+# Database (legacy Chroma prototype)
 chroma_db/
+
+# Coverage output
+.coverage
+coverage.xml

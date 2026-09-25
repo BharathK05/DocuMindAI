@@ -1,0 +1,166 @@
+# Infrastructure delivery with Terraform and GitHub OIDC (no AWS keys stored in GitHub).
+#   pull request -> build packages, `terraform plan` for dev and prod, posted as a PR comment
+#   merge to main -> apply dev automatically, then prod after a reviewer approves the
+#                    "production" environment in GitHub
+name: Deploy
+
+on:
+  pull_request:
+    paths: ["infra/**", "backend/**", ".github/workflows/deploy.yml"]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel a running apply half-way; queue the next one instead.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: "1.16.0"
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}  # secret: masked in public logs
+
+jobs:
+  package:
+    name: Build Lambda packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: pip install tiktoken~=0.14.0
+      - run: python backend/scripts/build_lambda.py --arch arm64
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lambda-packages
+          path: |
+            backend/dist/function.zip
+            backend/dist/layer-arm64.zip
+          retention-days: 7
+
+  plan:
+    name: Plan (${{ matrix.env }})
+    if: github.event_name == 'pull_request'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # to request the OIDC token for AWS
+      pull-requests: write  # to post the plan as a comment
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+    defaults:
+      run:
+        working-directory: infra/envs/${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: lambda-packages
+          path: backend/dist
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}  # read-only role
+          aws-region: ${{ env.AWS_REGION }}
+      - run: terraform init
+      - name: Terraform plan
+        run: |
+          set -o pipefail
+          terraform plan -no-color -lock-timeout=5m | tee plan.txt
+      - name: Comment plan on the pull request
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "### Terraform plan: \`${{ matrix.env }}\`"
+            echo '<details><summary>Show plan</summary>'
+            echo
+            echo '```'
+            grep -E '^(Plan:|No changes|Error)' plan.txt || true
+            echo
+            tail -c 60000 plan.txt
+            echo '```'
+            echo '</details>'
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+
+  deploy-dev:
+    name: Apply dev
+    if: github.event_name != 'pull_request'
+    needs: package
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra/envs/dev
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: lambda-packages
+          path: backend/dist
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: terraform init
+      - run: terraform apply -auto-approve -lock-timeout=5m
+      - name: Smoke test
+        run: |
+          url="$(terraform output -raw api_url)"
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 "${url}health"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "${url}v1/documents")" = "401"
+
+  deploy-prod:
+    name: Apply prod
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: production  # a required reviewer must approve before this job starts
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra/envs/prod
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: lambda-packages
+          path: backend/dist
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: terraform init
+      - run: terraform apply -auto-approve -lock-timeout=5m
+      - name: Smoke test
+        run: |
+          url="$(terraform output -raw api_url)"
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 "${url}health"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "${url}v1/documents")" = "401"

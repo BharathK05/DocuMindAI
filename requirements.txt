@@ -1,7 +1,0 @@
-google-genai==1.5.0
-chromadb
-langchain-community
-langchain-text-splitters
-pypdf
-gradio
-python-dotenv
