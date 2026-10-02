@@ -25,7 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 loadtest = ["locust~=2.46"]
-server = ["uvicorn[standard]~=0.53.0"]
+server = ["uvicorn[standard]~=0.54.0"]
 demo = ["gradio~=6.28"]
 dev = [
     "boto3-stubs[dynamodb,s3,sqs,ssm]",
