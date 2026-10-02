@@ -9,7 +9,7 @@ dependencies = [
     "boto3~=1.43",
     "fastapi~=0.141.1",
     "numpy~=2.5",
-    "openai~=3.19",
+    "openai~=3.20",
     # Tracing: OpenTelemetry API/SDK, exported to AWS X-Ray (see documind.core.tracing).
     "opentelemetry-api~=1.45",
     "opentelemetry-sdk~=1.45",
