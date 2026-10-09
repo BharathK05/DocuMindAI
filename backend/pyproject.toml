@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 # so no LangChain / ChromaDB. See docs/adr once written.
 dependencies = [
     "boto3~=1.43",
-    "fastapi~=0.141.1",
+    "fastapi~=0.142.2",
     "numpy~=2.5",
     "openai~=3.19",
     # Tracing: OpenTelemetry API/SDK, exported to AWS X-Ray (see documind.core.tracing).
